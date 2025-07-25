@@ -27,6 +27,12 @@ async function* executeGroupChatOrchestration(
   requestAbortControllers: Map<string, AbortController>,
   sessionId?: string,
   debugMode?: boolean,
+  availableAgents?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    isOrchestrator?: boolean;
+  }>,
 ): AsyncGenerator<StreamResponse> {
   let abortController: AbortController;
 
@@ -34,6 +40,66 @@ async function* executeGroupChatOrchestration(
     // Create and store AbortController for this request
     abortController = new AbortController();
     requestAbortControllers.set(requestId, abortController);
+
+    // Get worker agents (exclude orchestrator)
+    const workerAgents = availableAgents?.filter(agent => !agent.isOrchestrator) || [
+      { id: "readymojo-admin", name: "ReadyMojo Admin", description: "Admin dashboard and management interface" },
+      { id: "readymojo-api", name: "ReadyMojo API", description: "Backend API and server logic" },
+      { id: "readymojo-web", name: "ReadyMojo Web", description: "Frontend web application" },
+      { id: "peakmojo-kit", name: "PeakMojo Kit", description: "UI component library and design system" }
+    ];
+
+    // Check if message mentions only one specific agent
+    const mentionMatches = message.match(/@(\w+(?:-\w+)*)/g);
+    if (mentionMatches && mentionMatches.length === 1) {
+      const mentionedAgentId = mentionMatches[0].substring(1); // Remove @
+      const mentionedAgent = workerAgents.find(agent => agent.id === mentionedAgentId);
+      
+      if (mentionedAgent) {
+        // Single agent mentioned - no orchestration needed, direct execution
+        if (debugMode) {
+          console.debug(`[DEBUG] Single agent ${mentionedAgentId} mentioned, skipping orchestration`);
+        }
+        
+        // Return a simple message directing to execute with the specific agent
+        const directResponse = {
+          id: `direct-${Date.now()}`,
+          type: "message" as const,
+          role: "assistant" as const,
+          model: "claude-sonnet-4-20250514",
+          content: [{
+            type: "text" as const,
+            text: `I see you want to work with @${mentionedAgentId} specifically. I'll route your request directly to ${mentionedAgent.name} for execution.`
+          }],
+          stop_reason: "end_turn" as const,
+          stop_sequence: null,
+          usage: { input_tokens: 0, output_tokens: 0 }
+        };
+
+        yield {
+          type: "claude_json",
+          data: {
+            type: "system",
+            subtype: "init",
+            session_id: sessionId || `direct-${Date.now()}`,
+            model: "claude-sonnet-4-20250514",
+            tools: []
+          }
+        };
+
+        yield {
+          type: "claude_json",
+          data: {
+            type: "assistant",
+            message: directResponse,
+            session_id: sessionId || `direct-${Date.now()}`
+          }
+        };
+
+        yield { type: "done" };
+        return;
+      }
+    }
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
@@ -59,7 +125,7 @@ async function* executeGroupChatOrchestration(
                   agent: {
                     type: "string",
                     description: "ID of the worker agent that should execute this step",
-                    enum: ["readymojo-admin", "readymojo-api", "readymojo-web", "peakmojo-kit"]
+                    enum: workerAgents.map(agent => agent.id)
                   },
                   message: {
                     type: "string",
@@ -86,6 +152,10 @@ async function* executeGroupChatOrchestration(
       }
     ];
 
+    const agentDescriptions = workerAgents.map(agent => 
+      `- ${agent.id}: ${agent.description}`
+    ).join('\n');
+
     const systemPrompt = `You are the Chat with Agents orchestrator. Break user requests into steps where each agent saves results to a plain text file, and the next agent reads from that file.
 
 Rules:
@@ -94,10 +164,7 @@ Rules:
 3. Use simple paths like "/tmp/step1_results.txt", "/tmp/step2_results.txt"
 
 Available Agents:
-- readymojo-admin: Admin dashboard and management interface
-- readymojo-api: Backend API and server logic  
-- readymojo-web: Frontend web application
-- peakmojo-kit: UI component library and design system
+${agentDescriptions}
 
 Always use orchestrate_execution tool to create step-by-step plans.`;
 
@@ -351,6 +418,7 @@ export async function handleChatRequest(
               requestAbortControllers,
               chatRequest.sessionId,
               debugMode,
+              chatRequest.availableAgents,
             )
           : executeClaudeCommand(
               chatRequest.message,
