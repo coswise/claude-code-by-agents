@@ -1,6 +1,6 @@
 import { MessageCircle, Users, Settings } from "lucide-react";
 import { useState } from "react";
-import { PREDEFINED_AGENTS } from "../../config/agents";
+import { useAgentConfig } from "../../hooks/useAgentConfig";
 import { SettingsModal } from "../SettingsModal";
 
 interface SidebarProps {
@@ -28,6 +28,8 @@ export function Sidebar({
   onModeChange 
 }: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false);
+  const { getWorkerAgents } = useAgentConfig();
+  const agents = getWorkerAgents();
 
   return (
     <div className="layout-sidebar">
@@ -63,7 +65,7 @@ export function Sidebar({
       </div>
       
       <div className="sidebar-agent-list">
-        {PREDEFINED_AGENTS.filter(agent => !agent.isOrchestrator).map((agent) => {
+        {agents.map((agent) => {
           const isActive = activeAgentId === agent.id && currentMode === "agent";
           const hasMessages = agentSessions[agent.id]?.messages.length > 0;
           const messageCount = agentSessions[agent.id]?.messages.length || 0;

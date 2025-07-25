@@ -1,6 +1,6 @@
 import { Send, Paperclip, AtSign, StopCircle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { PREDEFINED_AGENTS } from "../../config/agents";
+import { useAgentConfig } from "../../hooks/useAgentConfig";
 
 interface ChatInputProps {
   input: string;
@@ -35,11 +35,14 @@ export function ChatInput({
   onAgentSwitch,
 }: ChatInputProps) {
   const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const { getWorkerAgents, getAgentById } = useAgentConfig();
+  const agents = getWorkerAgents();
+  
   const [mentionDropdown, setMentionDropdown] = useState<{
     show: boolean;
     position: number;
     query: string;
-    filteredAgents: typeof PREDEFINED_AGENTS;
+    filteredAgents: typeof agents;
     selectedIndex: number;
   }>({
     show: false,
@@ -57,18 +60,18 @@ export function ChatInput({
     const mentionMatch = input.match(/^@(\w+(?:-\w+)*)/);
     if (mentionMatch) {
       const agentId = mentionMatch[1];
-      return PREDEFINED_AGENTS.find(a => a.id === agentId);
+      return getAgentById(agentId);
     }
     
     // In group mode, use smart selection
     if (currentMode === "group") {
       // Priority: active agent, then last used, then default
-      const targetAgentId = activeAgentId || lastUsedAgentId || "readymojo-admin";
-      return PREDEFINED_AGENTS.find(a => a.id === targetAgentId);
+      const targetAgentId = activeAgentId || lastUsedAgentId || agents[0]?.id;
+      return getAgentById(targetAgentId || "");
     }
     
     // In agent mode, use active agent
-    return activeAgentId ? PREDEFINED_AGENTS.find(a => a.id === activeAgentId) : null;
+    return activeAgentId ? getAgentById(activeAgentId) : null;
   };
 
   const targetAgent = getTargetAgent();
@@ -122,11 +125,9 @@ export function ChatInput({
     
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
-      const filtered = PREDEFINED_AGENTS.filter(agent => 
-        !agent.isOrchestrator && (
-          agent.name.toLowerCase().includes(query) || 
-          agent.id.toLowerCase().includes(query)
-        )
+      const filtered = agents.filter(agent => 
+        agent.name.toLowerCase().includes(query) || 
+        agent.id.toLowerCase().includes(query)
       );
       
       setMentionDropdown({
@@ -260,7 +261,7 @@ export function ChatInput({
                   >
                     MENTION AGENT
                   </div>
-                  {PREDEFINED_AGENTS.filter(agent => !agent.isOrchestrator).map((agent) => (
+                  {agents.map((agent) => (
                     <button
                       key={agent.id}
                       onClick={() => insertMention(agent.id)}
@@ -315,7 +316,7 @@ export function ChatInput({
             currentMode === "group" 
               ? "Chat with agents or @mention specific agent..."
               : activeAgentId 
-                ? `Assign task to ${PREDEFINED_AGENTS.find(a => a.id === activeAgentId)?.name}...`
+                ? `Assign task to ${getAgentById(activeAgentId)?.name}...`
                 : "Select an agent to start coding..."
           }
           disabled={isLoading}
