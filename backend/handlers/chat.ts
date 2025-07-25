@@ -49,57 +49,6 @@ async function* executeGroupChatOrchestration(
       { id: "peakmojo-kit", name: "PeakMojo Kit", description: "UI component library and design system" }
     ];
 
-    // Check if message mentions only one specific agent
-    const mentionMatches = message.match(/@(\w+(?:-\w+)*)/g);
-    if (mentionMatches && mentionMatches.length === 1) {
-      const mentionedAgentId = mentionMatches[0].substring(1); // Remove @
-      const mentionedAgent = workerAgents.find(agent => agent.id === mentionedAgentId);
-      
-      if (mentionedAgent) {
-        // Single agent mentioned - no orchestration needed, direct execution
-        if (debugMode) {
-          console.debug(`[DEBUG] Single agent ${mentionedAgentId} mentioned, skipping orchestration`);
-        }
-        
-        // Return a simple message directing to execute with the specific agent
-        const directResponse = {
-          id: `direct-${Date.now()}`,
-          type: "message" as const,
-          role: "assistant" as const,
-          model: "claude-sonnet-4-20250514",
-          content: [{
-            type: "text" as const,
-            text: `I see you want to work with @${mentionedAgentId} specifically. I'll route your request directly to ${mentionedAgent.name} for execution.`
-          }],
-          stop_reason: "end_turn" as const,
-          stop_sequence: null,
-          usage: { input_tokens: 0, output_tokens: 0 }
-        };
-
-        yield {
-          type: "claude_json",
-          data: {
-            type: "system",
-            subtype: "init",
-            session_id: sessionId || `direct-${Date.now()}`,
-            model: "claude-sonnet-4-20250514",
-            tools: []
-          }
-        };
-
-        yield {
-          type: "claude_json",
-          data: {
-            type: "assistant",
-            message: directResponse,
-            session_id: sessionId || `direct-${Date.now()}`
-          }
-        };
-
-        yield { type: "done" };
-        return;
-      }
-    }
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
@@ -410,8 +359,33 @@ export async function handleChatRequest(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Choose execution method based on working directory
-        const executionMethod = isGroupChatAgent(chatRequest.workingDirectory)
+        // Check if this is a single-agent mention that should bypass orchestration
+        let shouldUseOrchestration = isGroupChatAgent(chatRequest.workingDirectory);
+        let targetWorkingDirectory = chatRequest.workingDirectory;
+        
+        if (shouldUseOrchestration && chatRequest.availableAgents) {
+          // Check if message mentions only one specific agent
+          const mentionMatches = chatRequest.message.match(/@(\w+(?:-\w+)*)/g);
+          if (mentionMatches && mentionMatches.length === 1) {
+            const mentionedAgentId = mentionMatches[0].substring(1); // Remove @
+            const workerAgents = chatRequest.availableAgents.filter(agent => !agent.isOrchestrator);
+            const mentionedAgent = workerAgents.find(agent => agent.id === mentionedAgentId);
+            
+            if (mentionedAgent) {
+              // Single agent mentioned - route directly to that agent
+              shouldUseOrchestration = false;
+              // Get the agent's working directory
+              targetWorkingDirectory = mentionedAgent.workingDirectory;
+              
+              if (debugMode) {
+                console.debug(`[DEBUG] Single agent ${mentionedAgentId} mentioned, routing directly instead of orchestration`);
+              }
+            }
+          }
+        }
+
+        // Choose execution method 
+        const executionMethod = shouldUseOrchestration
           ? executeGroupChatOrchestration(
               chatRequest.message,
               chatRequest.requestId,
@@ -427,7 +401,7 @@ export async function handleChatRequest(
               claudePath,
               chatRequest.sessionId,
               chatRequest.allowedTools,
-              chatRequest.workingDirectory,
+              targetWorkingDirectory,
               debugMode,
             );
 
