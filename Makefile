@@ -1,73 +1,119 @@
-# Claude Code Web UI - Development Tasks
+# AgentHub - Multi-Agent Programming Collaboration Tool
+# Makefile for building Electron app and DMG
 
-.PHONY: format format-check lint typecheck test build dev clean
+.PHONY: all clean install build dev electron dist dmg help
 
-# Formatting
-format: format-frontend format-backend
-format-frontend:
-	cd frontend && npm run format
-format-backend:
-	cd backend && deno task format && npm run format
+# Default target
+all: build
 
-# Format checking  
-format-check: format-check-frontend format-check-backend
-format-check-frontend:
-	cd frontend && npm run format:check
-format-check-backend:
-	cd backend && deno task format:check && npm run format:check
-
-# Linting
-lint: lint-frontend lint-backend
-lint-frontend:
-	cd frontend && npm run lint
-lint-backend:
-	cd backend && deno task lint && npm run lint
-
-# Type checking
-typecheck: typecheck-frontend typecheck-backend
-typecheck-frontend:
-	cd frontend && npm run typecheck
-typecheck-backend:
-	cd backend && deno task check && npm run typecheck
-
-# Testing
-test: test-frontend test-backend
-test-frontend:
-	cd frontend && npm run test:run
-test-backend:
-	cd backend && npm run test
-
-# Building
-build: build-frontend copy-dist build-backend
-build-frontend:
-	cd frontend && npm run build
-copy-dist:
-	rm -rf backend/dist
-	cp -r frontend/dist backend/dist
-build-backend:
-	cd backend && deno task build
-
-# Development
-dev-frontend:
-	cd frontend && npm run dev
-dev-backend:
-	cd backend && deno task dev
-
-# Quality checks (run before commit)
-check: format-check lint typecheck test build-frontend
+# Help target
+help:
+	@echo "AgentHub Build System"
+	@echo "===================="
+	@echo ""
+	@echo "Available targets:"
+	@echo "  install            - Install all dependencies"
+	@echo "  dev                - Start development servers"
+	@echo "  build              - Build frontend and backend"
+	@echo "  build-frontend     - Build frontend only"
+	@echo "  electron           - Run Electron app (requires frontend dev server)"
+	@echo "  electron-standalone- Run Electron app with built frontend"
+	@echo "  dist               - Build production Electron app"
+	@echo "  dmg                - Build macOS DMG installer"
+	@echo "  clean              - Clean build artifacts"
+	@echo "  help               - Show this help message"
 
 # Install dependencies
 install:
-	cd frontend && npm ci
+	@echo "Installing dependencies..."
+	npm install
+	cd frontend && npm install
+	cd backend && npm install
 
-# Format specific files (usage: make format-files FILES="file1 file2")
-format-files:
-	@for file in $(FILES); do \
-		echo "Formatting $$file"; \
-		cd $(PWD)/frontend && npx prettier --write "../$$file"; \
-	done
+# Development
+dev:
+	@echo "Starting development servers..."
+	@echo "Backend will start on port 8080"
+	@echo "Frontend will start on port 3000"
+	@echo "Press Ctrl+C to stop"
+	make -j2 dev-backend dev-frontend
 
-# Clean
+dev-backend:
+	cd backend && npm run dev
+
+dev-frontend:
+	cd frontend && npm run dev
+
+# Run Electron in development
+electron:
+	@echo "Starting Electron in development mode..."
+	npm run electron:dev
+
+# Run Electron standalone (with built frontend)
+electron-standalone: build-frontend
+	@echo "Starting Electron with built frontend..."
+	npm run electron:dev
+
+# Build frontend only
+build-frontend:
+	@echo "Building frontend..."
+	cd frontend && npm run build
+
+# Build everything
+build:
+	@echo "Building frontend and backend..."
+	npm run build:frontend
+	npm run build:backend
+
+# Build Electron app for distribution
+dist: build
+	@echo "Building Electron app for distribution..."
+	npm run dist
+
+# Build macOS DMG
+dmg: build
+	@echo "Building macOS DMG installer..."
+	npm run dist:mac
+
+# Clean build artifacts
 clean:
-	cd frontend && rm -rf node_modules dist
-	cd backend && rm -rf ../dist dist
+	@echo "Cleaning build artifacts..."
+	rm -rf dist/
+	rm -rf frontend/dist/
+	rm -rf backend/dist/
+	rm -rf node_modules/
+	rm -rf frontend/node_modules/
+	rm -rf backend/node_modules/
+
+# Create app icon (requires iconutil on macOS)
+icon:
+	@echo "Creating app icon..."
+	mkdir -p assets/icon.iconset
+	# Add different sizes of your icon PNG files to assets/icon.iconset/
+	# icon_16x16.png, icon_32x32.png, icon_128x128.png, icon_256x256.png, icon_512x512.png, icon_1024x1024.png
+	# Then run: iconutil -c icns assets/icon.iconset -o assets/icon.icns
+
+# Quick test build
+test-build: clean install build
+
+# Full release build
+release: clean install build dmg
+	@echo "Release build complete! Check dist/ folder for DMG file."
+
+# Development workflow
+quick-start: install
+	@echo "Quick start: Installing and launching development environment..."
+	make -j2 dev-backend electron
+
+# Check system requirements
+check:
+	@echo "Checking system requirements..."
+	@node --version || (echo "Node.js not found. Please install Node.js 18+"; exit 1)
+	@npm --version || (echo "npm not found. Please install npm"; exit 1)
+	@echo "System requirements OK"
+
+# Setup development environment
+setup: check install
+	@echo "Development environment setup complete!"
+	@echo "Run 'make dev' to start development servers"
+	@echo "Run 'make electron' to start Electron app"

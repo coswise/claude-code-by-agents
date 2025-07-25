@@ -1,67 +1,85 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface CollapsibleDetailsProps {
   label: string;
   details: string;
-  colorScheme: {
-    header: string;
-    content: string;
-    border: string;
-    bg: string;
-  };
-  icon?: React.ReactNode;
-  badge?: string;
+  defaultCollapsed?: boolean;
 }
 
 export function CollapsibleDetails({
   label,
   details,
-  colorScheme,
-  icon,
-  badge,
+  defaultCollapsed = true,
 }: CollapsibleDetailsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
   const hasDetails = details.trim().length > 0;
 
   return (
-    <div
-      className={`mb-3 p-3 rounded-lg ${colorScheme.bg} border ${colorScheme.border}`}
-    >
-      <div
-        className={`${colorScheme.header} text-xs font-medium mb-1 flex items-center gap-2 ${hasDetails ? "cursor-pointer hover:opacity-80" : ""}`}
-        role={hasDetails ? "button" : undefined}
-        tabIndex={hasDetails ? 0 : undefined}
-        aria-expanded={hasDetails ? isExpanded : undefined}
-        onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
-        onKeyDown={
-          hasDetails
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setIsExpanded(!isExpanded);
-                }
-              }
-            : undefined
-        }
-      >
-        {icon && (
-          <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs">
-            {icon}
+    <div className="message-item animate-in" style={{ marginBottom: '8px' }}>
+      {/* System message layout */}
+      <div style={{ display: 'flex', gap: '12px' }}>
+        {/* Icon placeholder */}
+        <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Empty space for alignment */}
+        </div>
+        
+        {/* Collapsible content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            onClick={hasDetails ? () => setIsExpanded(!isExpanded) : undefined}
+            style={{
+              cursor: hasDetails ? 'pointer' : 'default',
+              background: 'var(--claude-message-bg)',
+              border: '1px solid var(--claude-message-border)',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              marginBottom: hasDetails && isExpanded ? '0' : '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              color: 'var(--claude-text-secondary)',
+              borderBottomLeftRadius: hasDetails && isExpanded ? '0' : '8px',
+              borderBottomRightRadius: hasDetails && isExpanded ? '0' : '8px',
+            }}
+          >
+            <span>{label}</span>
+            {hasDetails && (
+              <span style={{ marginLeft: 'auto', fontSize: '10px' }}>
+                {isExpanded ? "▼" : "▶"}
+              </span>
+            )}
           </div>
-        )}
-        <span>{label}</span>
-        {badge && <span className="opacity-80">({badge})</span>}
-        {hasDetails && (
-          <span className="ml-1 opacity-80">{isExpanded ? "▼" : "▶"}</span>
-        )}
+          
+          {hasDetails && isExpanded && (
+            <div
+              style={{
+                background: 'var(--claude-message-bg)',
+                border: '1px solid var(--claude-message-border)',
+                borderTop: 'none',
+                borderBottomLeftRadius: '8px',
+                borderBottomRightRadius: '8px',
+                padding: '12px',
+                marginBottom: '8px',
+              }}
+            >
+              <pre
+                style={{
+                  fontSize: '12px',
+                  fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
+                  color: 'var(--claude-text-primary)',
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.4',
+                }}
+              >
+                {details}
+              </pre>
+            </div>
+          )}
+        </div>
       </div>
-      {hasDetails && isExpanded && (
-        <pre
-          className={`whitespace-pre-wrap ${colorScheme.content} text-xs font-mono leading-relaxed mt-2 pl-6 border-l-2 ${colorScheme.border}`}
-        >
-          {details}
-        </pre>
-      )}
     </div>
   );
 }

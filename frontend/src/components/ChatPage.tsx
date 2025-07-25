@@ -8,7 +8,6 @@ import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { useAbortController } from "../hooks/chat/useAbortController";
 import { useAutoHistoryLoader } from "../hooks/useHistoryLoader";
-import { ThemeToggle } from "./chat/ThemeToggle";
 import { HistoryButton } from "./chat/HistoryButton";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
@@ -42,7 +41,6 @@ export function ChatPage() {
   const isHistoryView = currentView === "history";
   const isLoadedConversation = !!sessionId && !isHistoryView;
 
-  const { theme, toggleTheme } = useTheme();
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
 
@@ -68,10 +66,8 @@ export function ChatPage() {
 
   // Load conversation history if sessionId is provided
   const {
-    messages: historyMessages,
     loading: historyLoading,
     error: historyError,
-    sessionId: loadedSessionId,
   } = useAutoHistoryLoader(
     getEncodedName() || undefined,
     sessionId || undefined,
@@ -97,10 +93,7 @@ export function ChatPage() {
     generateRequestId,
     resetRequestState,
     startRequest,
-  } = useChatState({
-    initialMessages: historyMessages,
-    initialSessionId: loadedSessionId || undefined,
-  });
+  } = useChatState();
 
   const {
     allowedTools,
@@ -348,7 +341,7 @@ export function ChatPage() {
   }, [isLoading, currentRequestId, handleAbort]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <div className="max-w-6xl mx-auto p-6 h-screen flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-shrink-0">
@@ -356,19 +349,19 @@ export function ChatPage() {
             {isHistoryView && (
               <button
                 onClick={handleBackToChat}
-                className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
+                className="p-2 rounded-lg bg-background border border-border hover:bg-accent transition-all duration-200 shadow-sm hover:shadow-md"
                 aria-label="Back to chat"
               >
-                <ChevronLeftIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <ChevronLeftIcon className="w-5 h-5 text-muted-foreground" />
               </button>
             )}
             {isLoadedConversation && (
               <button
                 onClick={handleBackToHistory}
-                className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
+                className="p-2 rounded-lg bg-background border border-border hover:bg-accent transition-all duration-200 shadow-sm hover:shadow-md"
                 aria-label="Back to history"
               >
-                <ChevronLeftIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <ChevronLeftIcon className="w-5 h-5 text-muted-foreground" />
               </button>
             )}
             <div>
@@ -376,22 +369,22 @@ export function ChatPage() {
                 <div className="flex items-center">
                   <button
                     onClick={handleBackToProjects}
-                    className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-md px-1 -mx-1"
+                    className="text-foreground text-3xl font-bold tracking-tight hover:text-primary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md px-1 -mx-1"
                     aria-label="Back to project selection"
                   >
-                    Claude Code Web UI
+                    Claude Code Web Agent
                   </button>
                   {(isHistoryView || sessionId) && (
                     <>
                       <span
-                        className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight mx-3 select-none"
+                        className="text-foreground text-3xl font-bold tracking-tight mx-3 select-none"
                         aria-hidden="true"
                       >
                         {" "}
                         ›{" "}
                       </span>
                       <h1
-                        className="text-slate-800 dark:text-slate-100 text-3xl font-bold tracking-tight"
+                        className="text-foreground text-3xl font-bold tracking-tight"
                         aria-current="page"
                       >
                         {isHistoryView
@@ -422,7 +415,6 @@ export function ChatPage() {
           </div>
           <div className="flex items-center gap-3">
             {!isHistoryView && <HistoryButton onClick={handleHistoryClick} />}
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </div>
 
@@ -486,9 +478,11 @@ export function ChatPage() {
               input={input}
               isLoading={isLoading}
               currentRequestId={currentRequestId}
+              activeAgentId={null}
               onInputChange={setInput}
               onSubmit={() => sendMessage()}
               onAbort={handleAbort}
+              onAgentSwitch={() => {}}
             />
           </>
         )}

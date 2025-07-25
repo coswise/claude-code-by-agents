@@ -5,12 +5,14 @@ import {
   isSystemMessage,
   isToolMessage,
   isToolResultMessage,
+  isOrchestrationMessage,
 } from "../../types";
 import {
   ChatMessageComponent,
   SystemMessageComponent,
   ToolMessageComponent,
   ToolResultMessageComponent,
+  OrchestrationMessageComponent,
   LoadingComponent,
 } from "../MessageComponents";
 // import { UI_CONSTANTS } from "../../utils/constants"; // Unused for now
@@ -18,11 +20,12 @@ import {
 interface ChatMessagesProps {
   messages: AllMessage[];
   isLoading: boolean;
+  onExecuteStep?: (step: any) => void;
+  onExecutePlan?: (steps: any[]) => void;
 }
 
-export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, onExecuteStep, onExecutePlan }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -58,6 +61,8 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
       return <ToolMessageComponent key={key} message={message} />;
     } else if (isToolResultMessage(message)) {
       return <ToolResultMessageComponent key={key} message={message} />;
+    } else if (isOrchestrationMessage(message)) {
+      return <OrchestrationMessageComponent key={key} message={message} onExecuteStep={onExecuteStep} onExecutePlan={onExecutePlan} />;
     } else if (isChatMessage(message)) {
       return <ChatMessageComponent key={key} message={message} />;
     }
@@ -65,39 +70,28 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   };
 
   return (
-    <div
-      ref={messagesContainerRef}
-      className="flex-1 overflow-y-auto bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 p-6 mb-6 rounded-2xl shadow-sm backdrop-blur-sm flex flex-col"
-    >
-      {messages.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          {/* Spacer div to push messages to the bottom */}
-          <div className="flex-1" aria-hidden="true"></div>
-          {messages.map(renderMessage)}
-          {isLoading && <LoadingComponent />}
-          <div ref={messagesEndRef} />
-        </>
-      )}
+    <div className="messages-container">
+      <div className="messages-content">
+        {messages.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            {messages.map(renderMessage)}
+            {isLoading && <LoadingComponent />}
+            <div ref={messagesEndRef} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
-      <div>
-        <div className="text-6xl mb-6 opacity-60">
-          <span role="img" aria-label="chat icon">
-            💬
-          </span>
-        </div>
-        <p className="text-lg font-medium">Start a conversation with Claude</p>
-        <p className="text-sm mt-2 opacity-80">
-          Type your message below to begin
-        </p>
-      </div>
+    <div className="empty-state">
+      <div className="empty-state-icon">👨‍💻</div>
+      <h3>Start coding with agents</h3>
+      <p>Assign a task or @mention agents to start</p>
     </div>
   );
 }

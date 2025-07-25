@@ -1,60 +1,154 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback } from "react";
 import type { AllMessage, ChatMessage } from "../../types";
 import { generateId } from "../../utils/id";
 
-interface ChatStateOptions {
-  initialMessages?: AllMessage[];
-  initialSessionId?: string;
+interface AgentSession {
+  sessionId: string | null;
+  messages: AllMessage[];
 }
 
-const DEFAULT_MESSAGES: AllMessage[] = [];
+export function useChatState() {
 
-export function useChatState(options: ChatStateOptions = {}) {
-  const { initialMessages = DEFAULT_MESSAGES, initialSessionId = null } =
-    options;
-
-  // Memoize initial messages to prevent infinite loops
-  const memoizedInitialMessages = useMemo(
-    () => initialMessages,
-    [initialMessages],
-  );
-
-  const [messages, setMessages] = useState<AllMessage[]>(
-    memoizedInitialMessages,
-  );
+  const [agentSessions, setAgentSessions] = useState<Record<string, AgentSession>>({});
+  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  const [lastUsedAgentId, setLastUsedAgentId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
-    initialSessionId,
-  );
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [hasShownInitMessage, setHasShownInitMessage] = useState(false);
   const [hasReceivedInit, setHasReceivedInit] = useState(false);
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
+  
+  // Group chat session - separate from individual agent sessions
+  const [groupChatSession, setGroupChatSession] = useState<AgentSession>({
+    sessionId: null,
+    messages: []
+  });
 
-  // Update messages and sessionId when initial values change
-  useEffect(() => {
-    setMessages(memoizedInitialMessages);
-  }, [memoizedInitialMessages]);
+  // Get current session - use group chat session or agent session based on context
+  const getCurrentSession = (useGroupChat: boolean = false) => {
+    if (useGroupChat) {
+      return groupChatSession;
+    }
+    const currentAgentId = activeAgentId || 'default';
+    return agentSessions[currentAgentId] || { sessionId: null, messages: [] };
+  };
 
-  useEffect(() => {
-    setCurrentSessionId(initialSessionId);
-  }, [initialSessionId]);
+  // For backward compatibility, default to agent sessions
+  const currentSession = getCurrentSession();
+  const messages = currentSession.messages;
+  const currentSessionId = currentSession.sessionId;
 
-  const addMessage = useCallback((msg: AllMessage) => {
-    setMessages((prev) => [...prev, msg]);
-  }, []);
+  // Initialize agent session if not exists
+  const getOrCreateAgentSession = useCallback((agentId: string): AgentSession => {
+    if (!agentSessions[agentId]) {
+      return {
+        sessionId: null,
+        messages: []
+      };
+    }
+    return agentSessions[agentId];
+  }, [agentSessions]);
 
-  const updateLastMessage = useCallback((content: string) => {
-    setMessages((prev) =>
-      prev.map((msg, index) =>
-        index === prev.length - 1 && msg.type === "chat"
-          ? { ...msg, content }
-          : msg,
-      ),
-    );
-  }, []);
+  // Switch to an agent
+  const switchToAgent = useCallback((agentId: string) => {
+    setActiveAgentId(agentId);
+    setLastUsedAgentId(agentId); // Track as last used
+    if (!agentSessions[agentId]) {
+      setAgentSessions(prev => ({
+        ...prev,
+        [agentId]: {
+          sessionId: null,
+          messages: []
+        }
+      }));
+    }
+  }, [agentSessions]);
+
+  // Get the best agent to use for messages (prioritizes active, then last used, then first available)
+  const getTargetAgentId = useCallback(() => {
+    if (activeAgentId) return activeAgentId;
+    if (lastUsedAgentId) return lastUsedAgentId;
+    // Fallback to first available agent
+    return "readymojo-admin"; // Default to admin agent
+  }, [activeAgentId, lastUsedAgentId]);
+
+  // Add message - supports both group chat and individual agent modes
+  const addMessage = useCallback((msg: AllMessage, useGroupChat: boolean = false) => {
+    if (useGroupChat) {
+      setGroupChatSession(prev => ({
+        ...prev,
+        messages: [...prev.messages, msg]
+      }));
+    } else {
+      const agentId = activeAgentId || 'default';
+      
+      setAgentSessions(prev => ({
+        ...prev,
+        [agentId]: {
+          ...getOrCreateAgentSession(agentId),
+          messages: [...(prev[agentId]?.messages || []), msg]
+        }
+      }));
+    }
+  }, [activeAgentId, getOrCreateAgentSession]);
+
+  // Update last message - supports both group chat and individual agent modes
+  const updateLastMessage = useCallback((content: string, useGroupChat: boolean = false) => {
+    if (useGroupChat) {
+      setGroupChatSession(prev => {
+        const updatedMessages = prev.messages.map((msg, index) =>
+          index === prev.messages.length - 1 && msg.type === "chat"
+            ? { ...msg, content }
+            : msg,
+        );
+        return {
+          ...prev,
+          messages: updatedMessages
+        };
+      });
+    } else {
+      const agentId = activeAgentId || 'default';
+      
+      setAgentSessions(prev => {
+        const currentMessages = prev[agentId]?.messages || [];
+        const updatedMessages = currentMessages.map((msg, index) =>
+          index === currentMessages.length - 1 && msg.type === "chat"
+            ? { ...msg, content }
+            : msg,
+        );
+        
+        return {
+          ...prev,
+          [agentId]: {
+            ...getOrCreateAgentSession(agentId),
+            messages: updatedMessages
+          }
+        };
+      });
+    }
+  }, [activeAgentId, getOrCreateAgentSession]);
+
+  // Update session ID - supports both group chat and individual agent modes  
+  const setCurrentSessionId = useCallback((sessionId: string | null, useGroupChat: boolean = false) => {
+    if (useGroupChat) {
+      setGroupChatSession(prev => ({
+        ...prev,
+        sessionId
+      }));
+    } else {
+      const agentId = activeAgentId || 'default';
+      
+      setAgentSessions(prev => ({
+        ...prev,
+        [agentId]: {
+          ...getOrCreateAgentSession(agentId),
+          sessionId
+        }
+      }));
+    }
+  }, [activeAgentId, getOrCreateAgentSession]);
 
   const clearInput = useCallback(() => {
     setInput("");
@@ -78,6 +172,14 @@ export function useChatState(options: ChatStateOptions = {}) {
     setHasReceivedInit(false);
   }, []);
 
+  // Get group chat context
+  const getGroupChatContext = useCallback(() => {
+    return {
+      messages: groupChatSession.messages,
+      sessionId: groupChatSession.sessionId,
+    };
+  }, [groupChatSession]);
+
   return {
     // State
     messages,
@@ -88,9 +190,12 @@ export function useChatState(options: ChatStateOptions = {}) {
     hasShownInitMessage,
     hasReceivedInit,
     currentAssistantMessage,
+    activeAgentId,
+    agentSessions,
+    lastUsedAgentId,
+    groupChatSession,
 
     // State setters
-    setMessages,
     setInput,
     setIsLoading,
     setCurrentSessionId,
@@ -106,5 +211,10 @@ export function useChatState(options: ChatStateOptions = {}) {
     generateRequestId,
     resetRequestState,
     startRequest,
+    switchToAgent,
+    getOrCreateAgentSession,
+    getTargetAgentId,
+    getCurrentSession,
+    getGroupChatContext,
   };
 }

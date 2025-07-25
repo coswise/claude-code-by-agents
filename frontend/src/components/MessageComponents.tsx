@@ -3,11 +3,12 @@ import type {
   SystemMessage,
   ToolMessage,
   ToolResultMessage,
+  OrchestrationMessage,
+  ExecutionStep,
 } from "../types";
-import { TimestampComponent } from "./TimestampComponent";
-import { MessageContainer } from "./messages/MessageContainer";
 import { CollapsibleDetails } from "./messages/CollapsibleDetails";
 import { MESSAGE_CONSTANTS } from "../utils/constants";
+import { getAgentById } from "../config/agents";
 
 interface ChatMessageComponentProps {
   message: ChatMessage;
@@ -15,34 +16,51 @@ interface ChatMessageComponentProps {
 
 export function ChatMessageComponent({ message }: ChatMessageComponentProps) {
   const isUser = message.role === "user";
-  const colorScheme = isUser
-    ? "bg-blue-600 text-white"
-    : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100";
+  const agent = message.agentId ? getAgentById(message.agentId) : null;
+
+  const displayName = isUser 
+    ? "User" 
+    : agent 
+    ? agent.name 
+    : "Claude";
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   return (
-    <MessageContainer
-      alignment={isUser ? "right" : "left"}
-      colorScheme={colorScheme}
-    >
-      <div className="mb-2 flex items-center justify-between gap-4">
-        <div
-          className={`text-xs font-semibold opacity-90 ${
-            isUser ? "text-blue-100" : "text-slate-600 dark:text-slate-400"
-          }`}
-        >
-          {isUser ? "User" : "Claude"}
-        </div>
-        <TimestampComponent
-          timestamp={message.timestamp}
-          className={`text-xs opacity-70 ${
-            isUser ? "text-blue-200" : "text-slate-500 dark:text-slate-500"
-          }`}
-        />
+    <div className="message-item animate-in">
+      {/* Avatar */}
+      <div 
+        className={`message-avatar ${isUser ? 'user' : ''}`}
+        style={!isUser && agent ? { 
+          backgroundColor: `var(--agent-${agent.id.replace('readymojo-', '').replace('peakmojo-', '')})`
+        } : {}}
+      >
+        {isUser ? "U" : agent?.name.charAt(0) || "C"}
       </div>
-      <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-        {message.content}
-      </pre>
-    </MessageContainer>
+
+      {/* Message Content */}
+      <div className="message-content">
+        {/* Header */}
+        <div className="message-header">
+          <span className="message-author">{displayName}</span>
+          <span className="message-time">{formatTime(message.timestamp)}</span>
+          {agent && (
+            <span className="message-agent">@{agent.id}</span>
+          )}
+        </div>
+
+        {/* Message Body */}
+        <div className="message-body">
+          <div className="message-text">{message.content}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -86,19 +104,13 @@ export function SystemMessageComponent({
   };
 
   const details = getDetails();
+  const label = getLabel();
 
   return (
     <CollapsibleDetails
-      label={getLabel()}
+      label={`⚙ ${label}(${message.subtype || 'info'})`}
       details={details}
-      badge={message.subtype}
-      icon={<span className="bg-blue-400 dark:bg-blue-500">⚙</span>}
-      colorScheme={{
-        header: "text-blue-800 dark:text-blue-300",
-        content: "text-blue-700 dark:text-blue-300",
-        border: "border-blue-200 dark:border-blue-700",
-        bg: "bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800",
-      }}
+      defaultCollapsed={true}
     />
   );
 }
@@ -109,17 +121,11 @@ interface ToolMessageComponentProps {
 
 export function ToolMessageComponent({ message }: ToolMessageComponentProps) {
   return (
-    <MessageContainer
-      alignment="left"
-      colorScheme="bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-100"
-    >
-      <div className="text-xs font-semibold mb-2 opacity-90 text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-        <div className="w-4 h-4 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs">
-          🔧
-        </div>
-        {message.content}
-      </div>
-    </MessageContainer>
+    <CollapsibleDetails
+      label={`🔧 Tool ${message.content}`}
+      details=""
+      defaultCollapsed={false}
+    />
   );
 }
 
@@ -130,35 +136,245 @@ interface ToolResultMessageComponentProps {
 export function ToolResultMessageComponent({
   message,
 }: ToolResultMessageComponentProps) {
+  const lines = message.content.split('\n').length;
   return (
     <CollapsibleDetails
-      label={message.toolName}
+      label={`✓ Tool result(${lines} lines)`}
       details={message.content}
-      badge={message.summary}
-      icon={<span className="bg-emerald-400 dark:bg-emerald-500">✓</span>}
-      colorScheme={{
-        header: "text-emerald-800 dark:text-emerald-300",
-        content: "text-emerald-700 dark:text-emerald-300",
-        border: "border-emerald-200 dark:border-emerald-700",
-        bg: "bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800",
-      }}
+      defaultCollapsed={true}
     />
+  );
+}
+
+interface OrchestrationMessageComponentProps {
+  message: OrchestrationMessage;
+  onExecuteStep?: (step: ExecutionStep) => void;
+  onExecutePlan?: (steps: ExecutionStep[]) => void;
+}
+
+export function OrchestrationMessageComponent({ 
+  message, 
+  onExecuteStep,
+  onExecutePlan
+}: OrchestrationMessageComponentProps) {
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const getStatusIcon = (status: ExecutionStep['status']) => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'in_progress': return '🔄';
+      case 'completed': return '✅';
+      case 'failed': return '❌';
+      default: return '⏳';
+    }
+  };
+
+  const getStatusColor = (status: ExecutionStep['status']) => {
+    switch (status) {
+      case 'pending': return 'var(--claude-text-muted)';
+      case 'in_progress': return 'var(--claude-text-accent)';
+      case 'completed': return 'var(--claude-success)';
+      case 'failed': return 'var(--claude-error)';
+      default: return 'var(--claude-text-muted)';
+    }
+  };
+
+  return (
+    <div className="message-item animate-in">
+      {/* Avatar */}
+      <div className="message-avatar" style={{ background: 'linear-gradient(135deg, var(--agent-admin), var(--agent-web))' }}>
+        GC
+      </div>
+
+      {/* Message Content */}
+      <div className="message-content">
+        {/* Header */}
+        <div className="message-header">
+          <span className="message-author">Chat with Agents</span>
+          <span className="message-time">{formatTime(message.timestamp)}</span>
+        </div>
+
+        {/* Orchestration Steps */}
+        <div className="message-body">
+          <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px'
+          }}>
+            <div style={{ 
+              fontSize: '13px', 
+              color: 'var(--claude-text-secondary)',
+              fontWeight: 500
+            }}>
+              📋 Execution Plan ({message.steps.length} steps)
+            </div>
+            
+            {onExecutePlan && (
+              <button
+                onClick={() => onExecutePlan(message.steps)}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--claude-text-primary)',
+                  background: 'var(--claude-text-accent)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                Execute Plan
+              </button>
+            )}
+          </div>
+          
+          {message.steps.map((step, index) => {
+            const agent = getAgentById(step.agent);
+            return (
+              <div 
+                key={step.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '8px 12px',
+                  marginBottom: '8px',
+                  background: 'var(--claude-input-bg)',
+                  border: '1px solid var(--claude-input-border)',
+                  borderRadius: '6px',
+                  cursor: step.status === 'pending' && onExecuteStep ? 'pointer' : 'default',
+                }}
+                onClick={() => {
+                  if (step.status === 'pending' && onExecuteStep) {
+                    onExecuteStep(step);
+                  }
+                }}
+              >
+                {/* Step number and status */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minWidth: '60px'
+                }}>
+                  <span style={{ 
+                    fontSize: '11px',
+                    color: 'var(--claude-text-muted)',
+                    fontWeight: 600
+                  }}>
+                    {index + 1}.
+                  </span>
+                  <span style={{ color: getStatusColor(step.status) }}>
+                    {getStatusIcon(step.status)}
+                  </span>
+                </div>
+
+                {/* Agent and message */}
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}>
+                    {agent && (
+                      <div 
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: `var(--agent-${agent.id.replace('readymojo-', '').replace('peakmojo-', '')})`,
+                          flexShrink: 0
+                        }}
+                      />
+                    )}
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--claude-text-primary)'
+                    }}>
+                      {agent?.name || step.agent}
+                    </span>
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--claude-text-secondary)',
+                    lineHeight: 1.4
+                  }}>
+                    {step.message}
+                  </div>
+                  
+                  {/* Show result if completed */}
+                  {step.result && step.status === 'completed' && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      background: 'var(--claude-message-bg)',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      color: 'var(--claude-text-primary)',
+                      fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
+                      maxHeight: '100px',
+                      overflow: 'auto'
+                    }}>
+                      {step.result.length > 200 ? step.result.substring(0, 200) + '...' : step.result}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function LoadingComponent() {
   return (
-    <MessageContainer
-      alignment="left"
-      colorScheme="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100"
-    >
-      <div className="text-xs font-semibold mb-2 opacity-90 text-slate-600 dark:text-slate-400">
-        Claude
+    <div className="message-item animate-in">
+      {/* Avatar */}
+      <div className="message-avatar">
+        C
       </div>
-      <div className="flex items-center gap-2 text-sm">
-        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-        <span className="animate-pulse">Thinking...</span>
+
+      {/* Message Content */}
+      <div className="message-content">
+        {/* Header */}
+        <div className="message-header">
+          <span className="message-author">Claude</span>
+          <span className="message-time">now</span>
+        </div>
+
+        {/* Message Body */}
+        <div className="message-body">
+          <div className="message-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid var(--claude-text-muted)',
+              borderTop: '2px solid var(--claude-text-primary)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <span style={{ color: 'var(--claude-text-muted)' }}>Thinking...</span>
+          </div>
+        </div>
       </div>
-    </MessageContainer>
+    </div>
   );
 }

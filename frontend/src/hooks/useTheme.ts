@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 export type Theme = "light" | "dark";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -13,10 +13,8 @@ export function useTheme() {
     if (saved && (saved === "light" || saved === "dark")) {
       setTheme(saved);
     } else {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      setTheme(prefersDark ? "dark" : "light");
+      // Default to dark mode (our base theme)
+      setTheme("dark");
     }
     setIsInitialized(true);
   }, []);
@@ -26,10 +24,10 @@ export function useTheme() {
 
     const root = window.document.documentElement;
 
-    if (theme === "dark") {
-      root.classList.add("dark");
+    if (theme === "light") {
+      root.setAttribute("data-theme", "light");
     } else {
-      root.classList.remove("dark");
+      root.removeAttribute("data-theme");
     }
 
     localStorage.setItem("theme", theme);

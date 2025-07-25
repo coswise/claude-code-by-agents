@@ -1,6 +1,240 @@
 import { Context } from "hono";
 import { AbortError, query } from "@anthropic-ai/claude-code";
+import Anthropic from "@anthropic-ai/sdk";
 import type { ChatRequest, StreamResponse } from "../../shared/types.ts";
+
+/**
+ * Detects if the request is for the Chat with Agents orchestrator
+ * @param workingDirectory - The working directory path
+ * @returns true if this is a Chat with Agents request
+ */
+function isGroupChatAgent(workingDirectory?: string): boolean {
+  return workingDirectory === "/Users/buryhuang/git/group-chat-agent";
+}
+
+/**
+ * Executes Chat with Agents orchestration using direct Anthropic API
+ * @param message - User message
+ * @param requestId - Unique request identifier
+ * @param requestAbortControllers - Shared map of abort controllers
+ * @param sessionId - Optional session ID
+ * @param debugMode - Enable debug logging
+ * @returns AsyncGenerator yielding StreamResponse objects
+ */
+async function* executeGroupChatOrchestration(
+  message: string,
+  requestId: string,
+  requestAbortControllers: Map<string, AbortController>,
+  sessionId?: string,
+  debugMode?: boolean,
+): AsyncGenerator<StreamResponse> {
+  let abortController: AbortController;
+
+  try {
+    // Create and store AbortController for this request
+    abortController = new AbortController();
+    requestAbortControllers.set(requestId, abortController);
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
+    });
+
+    const tools: Anthropic.Tool[] = [
+      {
+        name: "orchestrate_execution",
+        description: "Create a structured execution plan for multi-agent workflows with simple file-based communication. Message to each step must include the full path to files to read from and write to.",
+        input_schema: {
+          type: "object",
+          properties: {
+            steps: {
+              type: "array",
+              description: "Array of execution steps to be performed by different agents",
+              items: {
+                type: "object",
+                properties: {
+                  id: {
+                    type: "string",
+                    description: "Unique identifier for this step"
+                  },
+                  agent: {
+                    type: "string",
+                    description: "ID of the worker agent that should execute this step",
+                    enum: ["readymojo-admin", "readymojo-api", "readymojo-web", "peakmojo-kit"]
+                  },
+                  message: {
+                    type: "string",
+                    description: "Clear instruction for the agent. Include file paths to read from previous steps. Include the full path to files to write results to."
+                  },
+                  output_file: {
+                    type: "string", 
+                    description: "Path where this agent should save its results (plain text)"
+                  },
+                  dependencies: {
+                    type: "array",
+                    description: "Step IDs that must complete before this step can begin",
+                    items: {
+                      type: "string"
+                    }
+                  }
+                },
+                required: ["id", "agent", "message", "output_file"]
+              }
+            }
+          },
+          required: ["steps"]
+        }
+      }
+    ];
+
+    const systemPrompt = `You are the Chat with Agents orchestrator. Break user requests into steps where each agent saves results to a plain text file, and the next agent reads from that file.
+
+Rules:
+1. Each agent saves results to the specified output_file path
+2. Tell subsequent agents exactly which file to read from
+3. Use simple paths like "/tmp/step1_results.txt", "/tmp/step2_results.txt"
+
+Available Agents:
+- readymojo-admin: Admin dashboard and management interface
+- readymojo-api: Backend API and server logic  
+- readymojo-web: Frontend web application
+- peakmojo-kit: UI component library and design system
+
+Always use orchestrate_execution tool to create step-by-step plans.`;
+
+    const stream = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: message
+        }
+      ],
+      tools,
+      stream: true,
+    });
+
+    // Simulate system message for consistency with Claude Code SDK
+    yield {
+      type: "claude_json",
+      data: {
+        type: "system",
+        subtype: "init",
+        session_id: sessionId || `anthropic-${Date.now()}`,
+        model: "claude-sonnet-4-20250514",
+        tools: ["orchestrate_execution"]
+      }
+    };
+
+    let currentMessage: any = null;
+    let currentContent: any[] = [];
+
+    for await (const chunk of stream) {
+      if (debugMode) {
+        console.debug("[DEBUG] Anthropic API Chunk:");
+        console.debug(JSON.stringify(chunk, null, 2));
+        console.debug("---");
+      }
+
+      if (chunk.type === "message_start") {
+        currentMessage = {
+          id: chunk.message.id,
+          type: "message",
+          role: chunk.message.role,
+          model: chunk.message.model,
+          content: [],
+          stop_reason: null,
+          stop_sequence: null,
+          usage: chunk.message.usage
+        };
+      } else if (chunk.type === "content_block_start") {
+        const contentBlock = { ...chunk.content_block };
+        // Initialize tool_use input as empty string for JSON accumulation
+        if (contentBlock.type === "tool_use") {
+          contentBlock.input = "";
+        }
+        currentContent.push(contentBlock);
+      } else if (chunk.type === "content_block_delta") {
+        if (chunk.delta.type === "text_delta") {
+          const lastContent = currentContent[currentContent.length - 1];
+          if (lastContent && lastContent.type === "text") {
+            lastContent.text = (lastContent.text || "") + chunk.delta.text;
+          }
+        } else if (chunk.delta.type === "input_json_delta") {
+          const lastContent = currentContent[currentContent.length - 1];
+          if (lastContent && lastContent.type === "tool_use") {
+            // Ensure input is always a string during accumulation
+            if (typeof lastContent.input !== "string") {
+              lastContent.input = "";
+            }
+            lastContent.input += chunk.delta.partial_json;
+          }
+        }
+      } else if (chunk.type === "message_delta") {
+        if (currentMessage) {
+          currentMessage.stop_reason = chunk.delta.stop_reason;
+          currentMessage.stop_sequence = chunk.delta.stop_sequence;
+          if (chunk.usage) {
+            currentMessage.usage = { ...currentMessage.usage, ...chunk.usage };
+          }
+        }
+      } else if (chunk.type === "content_block_stop") {
+        // Parse tool input JSON when content block is complete
+        const lastContent = currentContent[currentContent.length - 1];
+        if (lastContent && lastContent.type === "tool_use") {
+          if (debugMode) {
+            console.debug("Content block stopped, input type:", typeof lastContent.input);
+            console.debug("Input length:", lastContent.input?.length || 0);
+            console.debug("First 100 chars:", typeof lastContent.input === "string" ? lastContent.input.substring(0, 100) : "Not a string");
+          }
+          
+          if (typeof lastContent.input === "string" && lastContent.input.trim()) {
+            try {
+              lastContent.input = JSON.parse(lastContent.input);
+              if (debugMode) {
+                console.debug("Successfully parsed tool input JSON");
+              }
+            } catch (e) {
+              if (debugMode) {
+                console.error("Failed to parse tool input JSON:", e);
+                console.error("Raw input:", lastContent.input);
+              }
+            }
+          }
+        }
+      } else if (chunk.type === "message_stop") {
+        if (currentMessage) {
+          currentMessage.content = currentContent;
+          
+          yield {
+            type: "claude_json",
+            data: {
+              type: "assistant",
+              message: currentMessage,
+              session_id: sessionId || `anthropic-${Date.now()}`
+            }
+          };
+        }
+      }
+    }
+
+    yield { type: "done" };
+  } catch (error) {
+    if (debugMode) {
+      console.error("Anthropic API execution failed:", error);
+    }
+    yield {
+      type: "error",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    // Clean up AbortController from map
+    if (requestAbortControllers.has(requestId)) {
+      requestAbortControllers.delete(requestId);
+    }
+  }
+}
 
 /**
  * Executes a Claude command and yields streaming responses
@@ -48,6 +282,7 @@ async function* executeClaudeCommand(
         ...(sessionId ? { resume: sessionId } : {}),
         ...(allowedTools ? { allowedTools } : {}),
         ...(workingDirectory ? { cwd: workingDirectory } : {}),
+        permissionMode: "bypassPermissions" as const,
       },
     })) {
       // Debug logging of raw SDK messages
@@ -108,16 +343,27 @@ export async function handleChatRequest(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of executeClaudeCommand(
-          chatRequest.message,
-          chatRequest.requestId,
-          requestAbortControllers,
-          claudePath,
-          chatRequest.sessionId,
-          chatRequest.allowedTools,
-          chatRequest.workingDirectory,
-          debugMode,
-        )) {
+        // Choose execution method based on working directory
+        const executionMethod = isGroupChatAgent(chatRequest.workingDirectory)
+          ? executeGroupChatOrchestration(
+              chatRequest.message,
+              chatRequest.requestId,
+              requestAbortControllers,
+              chatRequest.sessionId,
+              debugMode,
+            )
+          : executeClaudeCommand(
+              chatRequest.message,
+              chatRequest.requestId,
+              requestAbortControllers,
+              claudePath,
+              chatRequest.sessionId,
+              chatRequest.allowedTools,
+              chatRequest.workingDirectory,
+              debugMode,
+            );
+
+        for await (const chunk of executionMethod) {
           const data = JSON.stringify(chunk) + "\n";
           controller.enqueue(new TextEncoder().encode(data));
         }

@@ -11,6 +11,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  agentId?: string;
 }
 
 // Error message for streaming errors
@@ -70,11 +71,30 @@ export type TimestampedSDKMessage =
   | TimestampedSDKSystemMessage
   | TimestampedSDKResultMessage;
 
+// Execution step from Chat with Agents orchestrator
+export type ExecutionStep = {
+  id: string;
+  agent: string;
+  message: string;
+  status: "pending" | "in_progress" | "completed" | "failed";
+  result?: string;
+  timestamp: number;
+  dependencies?: string[];
+};
+
+// Orchestration message for Chat with Agents responses
+export type OrchestrationMessage = {
+  type: "orchestration";
+  steps: ExecutionStep[];
+  timestamp: number;
+};
+
 export type AllMessage =
   | ChatMessage
   | SystemMessage
   | ToolMessage
-  | ToolResultMessage;
+  | ToolResultMessage
+  | OrchestrationMessage;
 
 // Type guard functions
 export function isChatMessage(message: AllMessage): message is ChatMessage {
@@ -91,6 +111,12 @@ export function isSystemMessage(message: AllMessage): message is SystemMessage {
 
 export function isToolMessage(message: AllMessage): message is ToolMessage {
   return message.type === "tool";
+}
+
+export function isOrchestrationMessage(
+  message: AllMessage,
+): message is OrchestrationMessage {
+  return message.type === "orchestration";
 }
 
 export function isToolResultMessage(

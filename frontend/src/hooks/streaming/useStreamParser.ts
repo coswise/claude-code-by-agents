@@ -4,6 +4,8 @@ import type {
   SDKMessage,
   SystemMessage,
   AbortMessage,
+  OrchestrationMessage,
+  ExecutionStep,
 } from "../../types";
 import {
   isSystemMessage,
@@ -14,6 +16,7 @@ import {
 import { useMessageConverter } from "../useMessageConverter";
 import type { StreamingContext } from "./useMessageProcessor";
 import { useToolHandling } from "./useToolHandling";
+import { generateId } from "../../utils/id";
 
 export function useStreamParser() {
   const {
@@ -88,6 +91,31 @@ export function useStreamParser() {
       },
       context: StreamingContext,
     ) => {
+      // Check if this is an orchestration tool response
+      if (contentItem.name === "orchestrate_execution" && contentItem.input) {
+        const steps = contentItem.input.steps as any[];
+        if (Array.isArray(steps)) {
+          // Create orchestration message with execution steps
+          const orchestrationSteps: ExecutionStep[] = steps.map((step) => ({
+            id: step.id || generateId(),
+            agent: step.agent,
+            message: step.message,
+            status: "pending" as const,
+            timestamp: Date.now(),
+            dependencies: step.dependencies || [],
+          }));
+
+          const orchestrationMessage: OrchestrationMessage = {
+            type: "orchestration",
+            steps: orchestrationSteps,
+            timestamp: Date.now(),
+          };
+
+          context.addMessage(orchestrationMessage);
+          return;
+        }
+      }
+
       // Cache tool_use information for later permission error handling
       if (contentItem.id && contentItem.name) {
         toolUseCache.set(
@@ -142,6 +170,37 @@ export function useStreamParser() {
       if (Array.isArray(messageContent)) {
         for (const contentItem of messageContent) {
           if (contentItem.type === "tool_result") {
+            // Check if this is an orchestration tool result
+            if (contentItem.tool_use_id && typeof contentItem.content === "string") {
+              try {
+                // Try to parse the tool result content as JSON for orchestration
+                const parsed = JSON.parse(contentItem.content);
+                if (parsed.steps && Array.isArray(parsed.steps)) {
+                  // This is an orchestration response
+                  const orchestrationSteps: ExecutionStep[] = parsed.steps.map((step: any) => ({
+                    id: step.id || generateId(),
+                    agent: step.agent,
+                    message: step.message,
+                    status: "pending" as const,
+                    timestamp: Date.now(),
+                    dependencies: step.dependencies || [],
+                  }));
+
+                  const orchestrationMessage: OrchestrationMessage = {
+                    type: "orchestration",
+                    steps: orchestrationSteps,
+                    timestamp: Date.now(),
+                  };
+
+                  context.addMessage(orchestrationMessage);
+                  continue; // Skip regular tool result processing
+                }
+              } catch (e) {
+                // Not JSON or not orchestration data, fall through to regular processing
+              }
+            }
+            
+            // Regular tool result processing
             processToolResult(contentItem, context, createToolResultMessage);
           }
         }

@@ -9,13 +9,32 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
   return (
     <button
       onClick={onToggle}
-      className="p-3 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 backdrop-blur-sm shadow-sm hover:shadow-md"
+      style={{
+        padding: "8px",
+        borderRadius: "8px",
+        background: "var(--claude-message-bg)",
+        border: "1px solid var(--claude-border)",
+        color: "var(--claude-text-secondary)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--claude-sidebar-hover)";
+        e.currentTarget.style.color = "var(--claude-text-primary)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "var(--claude-message-bg)";
+        e.currentTarget.style.color = "var(--claude-text-secondary)";
+      }}
       aria-label="Toggle theme"
     >
       {theme === "light" ? (
-        <SunIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+        <MoonIcon style={{ width: "16px", height: "16px" }} />
       ) : (
-        <MoonIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+        <SunIcon style={{ width: "16px", height: "16px" }} />
       )}
     </button>
   );

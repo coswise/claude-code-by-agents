@@ -3,23 +3,28 @@ import { StopIcon } from "@heroicons/react/24/solid";
 import { UI_CONSTANTS, KEYBOARD_SHORTCUTS } from "../../utils/constants";
 import { useEnterBehavior } from "../../hooks/useEnterBehavior";
 import { EnterModeMenu } from "./EnterModeMenu";
+import { PREDEFINED_AGENTS, parseAgentMention } from "../../config/agents";
 
 interface ChatInputProps {
   input: string;
   isLoading: boolean;
   currentRequestId: string | null;
+  activeAgentId: string | null;
   onInputChange: (value: string) => void;
   onSubmit: () => void;
   onAbort: () => void;
+  onAgentSwitch: (agentId: string) => void;
 }
 
 export function ChatInput({
   input,
   isLoading,
   currentRequestId,
+  activeAgentId,
   onInputChange,
   onSubmit,
   onAbort,
+  onAgentSwitch,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -48,6 +53,19 @@ export function ChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Parse the input for agent mentions
+    const { agentId: mentionedAgentId, cleanMessage } = parseAgentMention(input);
+    
+    // If an agent is mentioned, switch to that agent
+    if (mentionedAgentId && mentionedAgentId !== activeAgentId) {
+      onAgentSwitch(mentionedAgentId);
+      // Update the input to remove the mention
+      onInputChange(cleanMessage);
+      // We'll let the parent component handle the actual submit after agent switch
+      return;
+    }
+    
     onSubmit();
   };
 
@@ -104,12 +122,14 @@ export function ChatInput({
           placeholder={
             isLoading && currentRequestId
               ? "Processing... (Press ESC to stop)"
-              : enterBehavior === "send"
-                ? "Type your message... (Enter to send)"
-                : "Type your message... (Shift+Enter to send)"
+              : activeAgentId
+                ? enterBehavior === "send"
+                  ? "Chat with agents... (Enter to send, @agent-name to switch)"
+                  : "Chat with agents... (Shift+Enter to send, @agent-name to switch)"
+                : "Select an agent first or use @agent-name to choose"
           }
           rows={1}
-          className={`w-full px-4 py-3 pr-40 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm shadow-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-hidden min-h-[48px] max-h-[${UI_CONSTANTS.TEXTAREA_MAX_HEIGHT}px]`}
+          className={`w-full px-4 py-3 pr-40 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:border-transparent transition-all duration-200 shadow-sm text-foreground placeholder:text-muted-foreground resize-none overflow-hidden min-h-[48px] max-h-[${UI_CONSTANTS.TEXTAREA_MAX_HEIGHT}px]`}
           disabled={isLoading}
         />
         <div className="absolute right-2 bottom-3 flex gap-2">
@@ -117,7 +137,7 @@ export function ChatInput({
             <button
               type="button"
               onClick={onAbort}
-              className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background shadow-sm text-destructive hover:text-destructive"
               title="Stop (ESC)"
             >
               <StopIcon className="w-4 h-4" />
@@ -126,8 +146,8 @@ export function ChatInput({
           <EnterModeMenu />
           <button
             type="submit"
-            disabled={!input.trim() || isLoading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 text-sm"
+            disabled={!input.trim() || isLoading || !activeAgentId}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow"
           >
             {isLoading ? "..." : "Send"}
           </button>
