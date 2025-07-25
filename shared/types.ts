@@ -10,6 +10,14 @@ export interface ChatRequest {
   requestId: string;
   allowedTools?: string[];
   workingDirectory?: string;
+  availableAgents?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    workingDirectory: string;
+    apiEndpoint: string;
+    isOrchestrator?: boolean;
+  }>;
 }
 
 export interface AbortRequest {

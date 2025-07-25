@@ -22,7 +22,7 @@ export function AgentHubPage() {
   useTheme(); // For theme switching support
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
-  const { getAgentById, getOrchestratorAgent } = useAgentConfig();
+  const { getAgentById, getOrchestratorAgent, getWorkerAgents, config } = useAgentConfig();
 
   const {
     messages,
@@ -165,6 +165,14 @@ export function AgentHubPage() {
         sessionId: sessionToUse || undefined,
         requestId,
         workingDirectory: currentAgent.workingDirectory,
+        availableAgents: config.agents.map(agent => ({
+          id: agent.id,
+          name: agent.name,
+          description: agent.description,
+          workingDirectory: agent.workingDirectory,
+          apiEndpoint: agent.apiEndpoint,
+          isOrchestrator: agent.isOrchestrator
+        })),
       };
 
       const response = await fetch(getChatUrl(), {
@@ -279,6 +287,14 @@ export function AgentHubPage() {
         sessionId: stepSessionId,
         requestId,
         workingDirectory: targetAgent.workingDirectory,
+        availableAgents: config.agents.map(agent => ({
+          id: agent.id,
+          name: agent.name,
+          description: agent.description,
+          workingDirectory: agent.workingDirectory,
+          apiEndpoint: agent.apiEndpoint,
+          isOrchestrator: agent.isOrchestrator
+        })),
       };
 
       const response = await fetch(getChatUrl(), {
