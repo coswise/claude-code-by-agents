@@ -13,7 +13,7 @@ import { AgentDetailView } from "./AgentDetailView";
 import { PermissionDialog } from "../PermissionDialog";
 import { getChatUrl } from "../../config/api";
 import { KEYBOARD_SHORTCUTS } from "../../utils/constants";
-import { getAgentById, getOrchestratorAgent } from "../../config/agents";
+import { useAgentConfig } from "../../hooks/useAgentConfig";
 import type { StreamingContext } from "../../hooks/streaming/useMessageProcessor";
 
 export function AgentHubPage() {
@@ -22,6 +22,7 @@ export function AgentHubPage() {
   useTheme(); // For theme switching support
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
+  const { getAgentById, getOrchestratorAgent } = useAgentConfig();
 
   const {
     messages,
@@ -461,7 +462,6 @@ export function AgentHubPage() {
               onInputChange={setInput}
               onSubmit={handleSendMessage}
               onAbort={handleAbort}
-              onAgentSwitch={handleAgentSwitch}
             />
           </>
         )}

@@ -12,11 +12,15 @@ interface SidebarProps {
   onModeChange: (mode: "group" | "agent") => void;
 }
 
-const agentColors = {
-  "readymojo-admin": "var(--agent-admin)",
-  "readymojo-api": "var(--agent-api)", 
-  "readymojo-web": "var(--agent-web)",
-  "peakmojo-kit": "var(--agent-kit)",
+const getAgentColor = (agentId: string) => {
+  // Map agent IDs to CSS color variables, with fallback
+  const colorMap: Record<string, string> = {
+    "readymojo-admin": "var(--agent-admin)",
+    "readymojo-api": "var(--agent-api)", 
+    "readymojo-web": "var(--agent-web)",
+    "peakmojo-kit": "var(--agent-kit)",
+  };
+  return colorMap[agentId] || "var(--claude-text-accent)";
 };
 
 export function Sidebar({ 
@@ -82,7 +86,7 @@ export function Sidebar({
               {/* Agent Indicator */}
               <div 
                 className="sidebar-agent-dot"
-                style={{ backgroundColor: agentColors[agent.id as keyof typeof agentColors] }}
+                style={{ backgroundColor: getAgentColor(agent.id) }}
               />
               
               {/* Agent Info */}

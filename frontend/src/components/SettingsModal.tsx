@@ -1,4 +1,4 @@
-import { X, Save, RotateCcw, Plus, Edit3, Trash2 } from "lucide-react";
+import { X, RotateCcw, Plus, Edit3, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "./chat/ThemeToggle";
 import { useTheme } from "../hooks/useTheme";
@@ -11,7 +11,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { theme, toggleTheme } = useTheme();
-  const { config, updateConfig, resetConfig, addAgent, updateAgent, removeAgent } = useAgentConfig();
+  const { config, resetConfig, addAgent, updateAgent, removeAgent } = useAgentConfig();
   
   // Local state for modal management
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
@@ -350,7 +350,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <AgentFormModal
           agent={editingAgent}
           onSave={editingAgent ? 
-            (updates) => handleUpdateAgent(editingAgent.id, updates) : 
+            (updates) => handleUpdateAgent(editingAgent.id, updates as Partial<Agent>) : 
             handleAddAgent
           }
           onCancel={() => {
@@ -366,7 +366,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 // Agent Form Modal Component
 interface AgentFormModalProps {
   agent?: Agent | null;
-  onSave: (agent: Omit<Agent, 'id'> | Partial<Agent>) => void;
+  onSave: (agent: Omit<Agent, 'id'>) => void;
   onCancel: () => void;
 }
 

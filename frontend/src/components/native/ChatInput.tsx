@@ -1,4 +1,4 @@
-import { Send, Paperclip, AtSign, StopCircle } from "lucide-react";
+import { Send, StopCircle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAgentConfig } from "../../hooks/useAgentConfig";
 
@@ -12,14 +12,17 @@ interface ChatInputProps {
   onInputChange: (value: string) => void;
   onSubmit: () => void;
   onAbort: () => void;
-  onAgentSwitch: (agentId: string) => void;
 }
 
-const agentColors = {
-  "readymojo-admin": "var(--agent-admin)",
-  "readymojo-api": "var(--agent-api)", 
-  "readymojo-web": "var(--agent-web)",
-  "peakmojo-kit": "var(--agent-kit)",
+const getAgentColor = (agentId: string) => {
+  // Map agent IDs to CSS color variables, with fallback
+  const colorMap: Record<string, string> = {
+    "readymojo-admin": "var(--agent-admin)",
+    "readymojo-api": "var(--agent-api)", 
+    "readymojo-web": "var(--agent-web)",
+    "peakmojo-kit": "var(--agent-kit)",
+  };
+  return colorMap[agentId] || "var(--claude-text-accent)";
 };
 
 export function ChatInput({
@@ -32,7 +35,6 @@ export function ChatInput({
   onInputChange,
   onSubmit,
   onAbort,
-  onAgentSwitch,
 }: ChatInputProps) {
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const { getWorkerAgents, getAgentById } = useAgentConfig();
@@ -190,7 +192,7 @@ export function ChatInput({
     }
   };
 
-  const selectMention = (agent: typeof PREDEFINED_AGENTS[0]) => {
+  const selectMention = (agent: ReturnType<typeof getWorkerAgents>[0]) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -291,7 +293,7 @@ export function ChatInput({
                           width: "8px",
                           height: "8px",
                           borderRadius: "50%",
-                          backgroundColor: agentColors[agent.id as keyof typeof agentColors]
+                          backgroundColor: getAgentColor(agent.id)
                         }}
                       />
                       <span style={{ fontWeight: 500 }}>@{agent.id}</span>
@@ -404,7 +406,7 @@ export function ChatInput({
                     width: "8px",
                     height: "8px",
                     borderRadius: "50%",
-                    backgroundColor: agentColors[agent.id as keyof typeof agentColors],
+                    backgroundColor: getAgentColor(agent.id),
                     flexShrink: 0
                   }}
                 />

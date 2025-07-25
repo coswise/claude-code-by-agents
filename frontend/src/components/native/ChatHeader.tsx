@@ -1,6 +1,6 @@
 import { Users, User, MoreHorizontal, Download, Trash2 } from "lucide-react";
-import { getAgentById } from "../../config/agents";
 import { useState } from "react";
+import { useAgentConfig } from "../../hooks/useAgentConfig";
 
 interface ChatHeaderProps {
   currentMode: "group" | "agent";
@@ -8,15 +8,20 @@ interface ChatHeaderProps {
   onModeToggle: () => void;
 }
 
-const agentColors = {
-  "readymojo-admin": "var(--agent-admin)",
-  "readymojo-api": "var(--agent-api)", 
-  "readymojo-web": "var(--agent-web)",
-  "peakmojo-kit": "var(--agent-kit)",
+const getAgentColor = (agentId: string) => {
+  // Map agent IDs to CSS color variables, with fallback
+  const colorMap: Record<string, string> = {
+    "readymojo-admin": "var(--agent-admin)",
+    "readymojo-api": "var(--agent-api)", 
+    "readymojo-web": "var(--agent-web)",
+    "peakmojo-kit": "var(--agent-kit)",
+  };
+  return colorMap[agentId] || "var(--claude-text-accent)";
 };
 
 export function ChatHeader({ currentMode, activeAgentId, onModeToggle }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const { getAgentById } = useAgentConfig();
   const currentAgent = activeAgentId ? getAgentById(activeAgentId) : null;
 
   return (
@@ -39,7 +44,7 @@ export function ChatHeader({ currentMode, activeAgentId, onModeToggle }: ChatHea
           <>
             <div 
               className="chat-header-icon"
-              style={{ backgroundColor: currentAgent ? agentColors[currentAgent.id as keyof typeof agentColors] : "var(--claude-border)" }}
+              style={{ backgroundColor: currentAgent ? getAgentColor(currentAgent.id) : "var(--claude-border)" }}
             >
               <User size={12} />
             </div>

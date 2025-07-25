@@ -1,6 +1,6 @@
 import { Copy, Clock, FileText, GitBranch } from "lucide-react";
-import { getAgentById } from "../../config/agents";
 import type { AllMessage } from "../../types";
+import { useAgentConfig } from "../../hooks/useAgentConfig";
 
 interface AgentDetailViewProps {
   agentId: string;
@@ -8,14 +8,19 @@ interface AgentDetailViewProps {
   sessionId: string | null;
 }
 
-const agentColors = {
-  "readymojo-admin": "var(--agent-admin)",
-  "readymojo-api": "var(--agent-api)", 
-  "readymojo-web": "var(--agent-web)",
-  "peakmojo-kit": "var(--agent-kit)",
+const getAgentColor = (agentId: string) => {
+  // Map agent IDs to CSS color variables, with fallback
+  const colorMap: Record<string, string> = {
+    "readymojo-admin": "var(--agent-admin)",
+    "readymojo-api": "var(--agent-api)", 
+    "readymojo-web": "var(--agent-web)",
+    "peakmojo-kit": "var(--agent-kit)",
+  };
+  return colorMap[agentId] || "var(--claude-text-accent)";
 };
 
 export function AgentDetailView({ agentId, messages, sessionId }: AgentDetailViewProps) {
+  const { getAgentById } = useAgentConfig();
   const agent = getAgentById(agentId);
   
   if (!agent) {
@@ -48,7 +53,7 @@ export function AgentDetailView({ agentId, messages, sessionId }: AgentDetailVie
         <div className="agent-detail-header">
           <div 
             className="agent-detail-icon"
-            style={{ backgroundColor: agentColors[agent.id as keyof typeof agentColors] }}
+            style={{ backgroundColor: getAgentColor(agent.id) }}
           >
             {agent.name.charAt(0)}
           </div>
@@ -185,7 +190,7 @@ export function AgentDetailView({ agentId, messages, sessionId }: AgentDetailVie
                             width: "6px",
                             height: "6px",
                             borderRadius: "50%",
-                            backgroundColor: message.role === "user" ? "var(--claude-border)" : agentColors[agent.id as keyof typeof agentColors],
+                            backgroundColor: message.role === "user" ? "var(--claude-border)" : getAgentColor(agent.id),
                             marginTop: "8px",
                             flexShrink: 0
                           }}
