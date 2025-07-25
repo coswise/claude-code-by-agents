@@ -13,6 +13,123 @@ function isGroupChatAgent(workingDirectory?: string): boolean {
 }
 
 /**
+ * Executes a request via HTTP to a specific agent's API endpoint
+ * @param agent - The target agent with endpoint information
+ * @param message - User message
+ * @param requestId - Unique request identifier
+ * @param requestAbortControllers - Shared map of abort controllers
+ * @param sessionId - Optional session ID
+ * @param debugMode - Enable debug logging
+ * @returns AsyncGenerator yielding StreamResponse objects
+ */
+async function* executeAgentHttpRequest(
+  agent: { id: string; name: string; apiEndpoint: string; workingDirectory: string; },
+  message: string,
+  requestId: string,
+  requestAbortControllers: Map<string, AbortController>,
+  sessionId?: string,
+  debugMode?: boolean,
+): AsyncGenerator<StreamResponse> {
+  let abortController: AbortController;
+
+  try {
+    // Create and store AbortController for this request
+    abortController = new AbortController();
+    requestAbortControllers.set(requestId, abortController);
+
+    // Prepare the chat request for the agent's endpoint
+    const agentChatRequest: ChatRequest = {
+      message: message,
+      sessionId: sessionId,
+      requestId: requestId,
+      workingDirectory: agent.workingDirectory,
+    };
+
+    if (debugMode) {
+      console.debug(`[DEBUG] Making HTTP request to agent ${agent.id} at ${agent.apiEndpoint}`);
+      console.debug(`[DEBUG] Request payload:`, JSON.stringify(agentChatRequest, null, 2));
+    }
+
+    // Make HTTP request to the agent's endpoint
+    const response = await fetch(`${agent.apiEndpoint}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(agentChatRequest),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error("No response body from agent endpoint");
+    }
+
+    // Stream the response from the agent
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const streamResponse: StreamResponse = JSON.parse(line);
+            
+            if (debugMode) {
+              console.debug(`[DEBUG] Agent response:`, JSON.stringify(streamResponse, null, 2));
+            }
+
+            yield streamResponse;
+
+            // If we get a done or error, we can break
+            if (streamResponse.type === "done" || streamResponse.type === "error") {
+              return;
+            }
+          } catch (parseError) {
+            if (debugMode) {
+              console.debug(`[DEBUG] Failed to parse line: ${line}`, parseError);
+            }
+            // Skip invalid JSON lines
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    yield { type: "done" };
+  } catch (error) {
+    if (debugMode) {
+      console.error(`[DEBUG] Agent HTTP request failed:`, error);
+    }
+
+    // Check if error is due to abort
+    if (error instanceof Error && error.name === 'AbortError') {
+      yield { type: "aborted" };
+    } else {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  } finally {
+    // Clean up AbortController from map
+    if (requestAbortControllers.has(requestId)) {
+      requestAbortControllers.delete(requestId);
+    }
+  }
+}
+
+/**
  * Executes Chat with Agents orchestration using direct Anthropic API
  * @param message - User message
  * @param requestId - Unique request identifier
@@ -359,11 +476,10 @@ export async function handleChatRequest(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Check if this is a single-agent mention that should bypass orchestration
-        let shouldUseOrchestration = isGroupChatAgent(chatRequest.workingDirectory);
-        let targetWorkingDirectory = chatRequest.workingDirectory;
+        // Check if this is a single-agent mention that should use HTTP request
+        let executionMethod;
         
-        if (shouldUseOrchestration && chatRequest.availableAgents) {
+        if (isGroupChatAgent(chatRequest.workingDirectory) && chatRequest.availableAgents) {
           // Check if message mentions only one specific agent
           const mentionMatches = chatRequest.message.match(/@(\w+(?:-\w+)*)/g);
           if (mentionMatches && mentionMatches.length === 1) {
@@ -372,38 +488,54 @@ export async function handleChatRequest(
             const mentionedAgent = workerAgents.find(agent => agent.id === mentionedAgentId);
             
             if (mentionedAgent) {
-              // Single agent mentioned - route directly to that agent
-              shouldUseOrchestration = false;
-              // Get the agent's working directory
-              targetWorkingDirectory = mentionedAgent.workingDirectory;
-              
+              // Single agent mentioned - make HTTP request to agent's endpoint
               if (debugMode) {
-                console.debug(`[DEBUG] Single agent ${mentionedAgentId} mentioned, routing directly instead of orchestration`);
+                console.debug(`[DEBUG] Single agent ${mentionedAgentId} mentioned, making HTTP request to ${mentionedAgent.apiEndpoint}`);
               }
+              
+              executionMethod = executeAgentHttpRequest(
+                mentionedAgent,
+                chatRequest.message,
+                chatRequest.requestId,
+                requestAbortControllers,
+                chatRequest.sessionId,
+                debugMode,
+              );
+            } else {
+              // Multi-agent orchestration
+              executionMethod = executeGroupChatOrchestration(
+                chatRequest.message,
+                chatRequest.requestId,
+                requestAbortControllers,
+                chatRequest.sessionId,
+                debugMode,
+                chatRequest.availableAgents,
+              );
             }
-          }
-        }
-
-        // Choose execution method 
-        const executionMethod = shouldUseOrchestration
-          ? executeGroupChatOrchestration(
+          } else {
+            // Multi-agent or no mentions - use orchestration
+            executionMethod = executeGroupChatOrchestration(
               chatRequest.message,
               chatRequest.requestId,
               requestAbortControllers,
               chatRequest.sessionId,
               debugMode,
               chatRequest.availableAgents,
-            )
-          : executeClaudeCommand(
-              chatRequest.message,
-              chatRequest.requestId,
-              requestAbortControllers,
-              claudePath,
-              chatRequest.sessionId,
-              chatRequest.allowedTools,
-              targetWorkingDirectory,
-              debugMode,
             );
+          }
+        } else {
+          // Not group chat - use local Claude execution
+          executionMethod = executeClaudeCommand(
+            chatRequest.message,
+            chatRequest.requestId,
+            requestAbortControllers,
+            claudePath,
+            chatRequest.sessionId,
+            chatRequest.allowedTools,
+            chatRequest.workingDirectory,
+            debugMode,
+          );
+        }
 
         for await (const chunk of executionMethod) {
           const data = JSON.stringify(chunk) + "\n";
