@@ -1,6 +1,9 @@
 # Claude Code Web Agent
 
-A multi-agent orchestration platform built on top of Claude Code CLI. This project enables intelligent coordination between specialized agents through a web interface with file-based communication.
+A multi-agent orchestration platform built on top of Claude Code CLI (for now). This project enables intelligent coordination between specialized agents through a web interface with file-based communication.
+
+<img width="1304" height="811" alt="Screenshot 2025-07-25 at 10 00 57 AM" src="https://github.com/user-attachments/assets/99c6095c-8c1d-4a69-a240-2a974e01c097" />
+
 
 > **Forked from [sugyan/claude-code-webui](https://github.com/sugyan/claude-code-webui)** - Thank you for the excellent foundation!
 
