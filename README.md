@@ -1,258 +1,125 @@
 # Code By Agents
 
-A dynamic multi-agent orchestration platform that enables intelligent coordination between specialized AI agents through a modern web interface. Each agent runs independently with its own API endpoint and can be dynamically configured through the settings interface.
+Desktop app for multi-agent orchestration with Claude CLI. Route tasks to specialized agents (local or remote), coordinate complex workflows.
 
-<img width="1304" height="811" alt="Screenshot 2025-07-25 at 10 00 57 AM" src="https://github.com/user-attachments/assets/99c6095c-8c1d-4a69-a240-2a974e01c097" />
+<img width="1304" height="811" alt="Screenshot 2025-07-25 at 10 00 57 AM" src="https://github.com/user-attachments/assets/99c6095c-8c1d-4a69-a240-2a974e01c097" />
 
-
-> **Forked from [sugyan/claude-code-webui](https://github.com/sugyan/claude-code-webui)** - Thank you for the excellent foundation!
-
-## What This Does
-
-Transform single-agent AI interactions into intelligent multi-agent workflows with dynamic configuration:
-
-**Traditional Approach:**
-- One AI agent handles everything
-- Manual task coordination  
-- Static, hardcoded agent configurations
-
-**Dynamic Multi-Agent Orchestration:**
-- Configurable agents for different projects/domains
-- Intelligent routing: single @mentions vs multi-agent orchestration
-- HTTP-based communication between distributed agent instances
-- Real-time agent management through settings interface
-
-## Quick Start
-
-### Prerequisites
-- Claude CLI installed and authenticated on each agent machine
-- Node.js >=20.0.0 or Deno
-- dotenvx for development
-
-### Run Development Mode
-
-```bash
-# Main orchestrator backend
-cd backend && deno task dev        # Runs on http://localhost:8080
-
-# Frontend (new terminal)  
-cd frontend && npm run dev         # Runs on http://localhost:3000
-
-# Agent instances (additional terminals)
-# Each agent runs its own Claude Code Web Agent instance
-cd path/to/agent1 && deno task dev   # e.g., http://localhost:8081
-cd path/to/agent2 && deno task dev   # e.g., http://localhost:8082
-
-# Open http://localhost:3000 and configure agents in Settings
-```
-
-### Agent Configuration
-
-1. Open **Settings** in the web interface
-2. Configure API access:
-   - **Default**: Uses free public endpoint (no setup required)
-   - **Custom**: Set your API endpoint URL for private deployment
-3. Add agents with their respective:
-   - **Name**: Human-readable agent name
-   - **Description**: What the agent specializes in
-   - **Working Directory**: Local path to agent's project
-   - **API Endpoint**: HTTP endpoint where agent instance runs
-4. The first agent automatically becomes the orchestrator
-
-## API Key Design
-
-The system uses a **hybrid approach** for Claude API access:
-
-- **Planner/Orchestrator**: Uses API key for task analysis and coordination
-- **Agent Execution**: Uses local Claude CLI subscription for actual work
-- **Default Setup**: Free public endpoint (no API key required)
-- **Custom Setup**: Configure your own API endpoint in Settings
-
-This design minimizes API costs while leveraging your existing Claude subscription for the heavy lifting.
-
-## How It Works
-
-### 1. Smart Routing System
-The system intelligently routes requests based on content:
-
-**Single Agent Mentions**: `@agent-name do something`
-- Direct HTTP request to agent's API endpoint
-- No orchestration overhead - immediate execution
-- Agent works in its configured environment
-
-**Multi-Agent Requests**: `@agent1 and @agent2 collaborate`
-- Orchestrator creates step-by-step execution plan
-- File-based communication between agents
-- Dependency management ensures proper execution order
-
-**General Requests**: `"Build a feature"`
-- Orchestrator analyzes and decomposes the task
-- Assigns work to best-suited agents
-- Coordinates complex multi-step workflows
-
-### 2. HTTP-Based Agent Communication
-- Each agent runs as independent Claude Code instance
-- Main orchestrator communicates via HTTP API calls
-- Maintains session continuity across agent boundaries
-- Real-time streaming responses for immediate feedback
-
-### 3. Dynamic Agent Management
-- Add/remove agents through web interface
-- Configure working directories and API endpoints
-- Automatic orchestrator assignment (first agent)
-- Live updates to routing and orchestration logic
-
-### 4. Example Workflows
-
-**Single Agent Request**: `@api-agent add user authentication`
-```
-User → Orchestrator → HTTP POST to api-agent's endpoint → Direct execution
-```
-
-**Multi-Agent Request**: `"Create full authentication system"`
-```json
-{
-  "steps": [
-    {
-      "id": "step1",
-      "agent": "api-agent", 
-      "message": "Analyze auth requirements and implement backend API",
-      "output_file": "/tmp/auth_backend.txt"
-    },
-    {
-      "id": "step2", 
-      "agent": "web-agent",
-      "message": "Read /tmp/auth_backend.txt and create frontend components",
-      "output_file": "/tmp/auth_frontend.txt",
-      "dependencies": ["step1"]
-    },
-    {
-      "id": "step3",
-      "agent": "admin-agent", 
-      "message": "Read /tmp/auth_frontend.txt and update admin dashboard",
-      "dependencies": ["step2"]
-    }
-  ]
-}
-```
-
-## Dynamic Agent Configuration
-
-Agents are now **fully configurable** through the web interface! No hardcoded limitations.
-
-### Default Example Agents
-- **Chat with Agents**: Orchestrator for multi-agent coordination
-- **ReadyMojo Admin**: Admin dashboard and management interface
-- **ReadyMojo API**: Backend API and server logic  
-- **ReadyMojo Web**: Frontend web application
-- **PeakMojo LiveKit**: LiveKit voice integration
-
-### Custom Agent Setup
-Add your own agents by providing:
-- **Unique ID**: URL-safe identifier (e.g., `my-custom-agent`)
-- **Name**: Display name (e.g., `My Custom Agent`)
-- **Description**: What the agent specializes in
-- **Working Directory**: Path to agent's project files
-- **API Endpoint**: HTTP endpoint where agent runs (e.g., `http://localhost:8085`)
-
-All agents appear immediately in:
-- Settings management interface
-- @mention autocomplete
-- Orchestration routing logic
-- Sidebar navigation
+> **Forked from [sugyan/claude-code-webui](https://github.com/sugyan/claude-code-webui)**
 
 ## Key Features
 
-### 🎯 **Intelligent Routing**
-- **Single @mentions**: Direct HTTP execution (no orchestration overhead)
-- **Multi-agent requests**: Automatic task decomposition with file-based coordination
-- **Context-aware**: Routes based on agent specializations and dependencies
+- **`@agent-name` mentions**: Direct execution, no orchestration overhead
+- **Multi-agent workflows**: Automatic task decomposition and coordination  
+- **Local + Remote agents**: Mix local agents and remote machines (Mac Mini browser agent, cloud instances, etc.)
+- **Free public API**: No API key required (uses my endpoint by default)
+- **Custom API support**: Configure your own endpoint in Settings
+- **Dynamic agents**: Add/remove agents via web UI
 
-### ⚙️ **Dynamic Configuration**
-- **Real-time agent management**: Add/edit/remove agents through web UI
-- **Flexible deployment**: Each agent runs independently with own API endpoint
-- **Automatic integration**: New agents immediately available in all features
+## API Design
 
-### 🔗 **HTTP-Based Communication**
-- **Distributed architecture**: Agents can run on different machines/ports
-- **Session continuity**: Maintains conversation context across agent boundaries
-- **Streaming responses**: Real-time feedback from all agent interactions
+- **Planner**: Uses API key for task analysis and coordination
+- **Agents**: Use your local Claude CLI subscription for execution
+- **Default**: Free public endpoint (zero setup)
+- **Custom**: Set your API URL in Settings for private deployment
 
-### 🎨 **Modern Web Interface**
-- **Chat-based interaction**: Natural language requests with @mention support
-- **Agent management**: Visual configuration and monitoring
-- **Theme support**: Light/dark modes with orange-based design
-- **Responsive design**: Works on desktop and mobile devices
+## Quick Start
+
+```bash
+# Prerequisites: Claude CLI installed + authenticated
+
+# Option 1: Desktop App
+make install && make electron      # Electron desktop app
+
+# Option 2: Web Development  
+cd backend && deno task dev        # Backend: http://localhost:8080
+cd frontend && npm run dev         # Frontend: http://localhost:3000
+
+# 3. Start agent instances (local or remote)
+cd path/to/agent1 && deno task dev --port 8081   # Local agent
+cd path/to/agent2 && deno task dev --port 8082   # Local agent
+# Remote agents: Run on other machines, expose ports
+
+# 4. Configure agents in Settings
+```
+
+## Usage
+
+**Single agent**: `@api-agent add user authentication`
+- Direct HTTP call to agent endpoint
+- No coordination overhead
+
+**Multi-agent**: `"Create full auth system with frontend and backend"`
+- Orchestrator analyzes and creates execution plan
+- Coordinates file-based communication between agents
+- Manages dependencies automatically
+
+## Configuration
+
+### In Settings UI:
+
+1. **API Configuration**:
+   - Default: Uses free public endpoint 
+   - Custom: Set your API endpoint URL
+
+2. **Add Agents** (local or remote):
+   - Name: `API Backend Agent`
+   - Description: `Handles backend API development`
+   - Working Directory: `/path/to/backend`
+   - API Endpoint: `http://localhost:8081` (local) or `http://mac-mini.local:8081` (remote)
+
+3. **Agent Routing**:
+   - First agent = orchestrator
+   - @mentions route to specific agents
+   - General requests use orchestrator
 
 ## Architecture
 
-### System Overview
 ```
-Frontend (React) ←→ Main Backend (Orchestrator) ←→ Agent Instance 1 (Port 8081)
-                                                  ←→ Agent Instance 2 (Port 8082)  
-                                                  ←→ Agent Instance N (Port 808X)
-```
-
-### Request Flow
-
-**Single Agent**: `@agent-name request`
-```
-User → Frontend → Main Backend → HTTP Request → Agent's Claude Instance → Response
+Frontend → Main Backend (Orchestrator) → Local Agent 1 (localhost:8081)
+                                      → Local Agent 2 (localhost:8082)  
+                                      → Remote Agent 3 (mac-mini.local:8081)
+                                      → Remote Agent N (cloud-instance:8081)
 ```
 
-**Multi-Agent**: `"Complex request requiring multiple agents"`  
-```  
-User → Frontend → Main Backend → Orchestrator Analysis → Step Plans
-                                                        ↓
-Agent 1 ← HTTP Request ← Step 1 ← File Dependencies ← Coordination
-Agent 2 ← HTTP Request ← Step 2 ← Read Step 1 Output ← Logic
-Agent N ← HTTP Request ← Step N ← Read Previous Results
+**Single Agent Flow**:
+```
+User → @agent-name → HTTP Request → Agent's Claude Instance → Response
 ```
 
-### Key Components
-- **Main Backend**: Orchestrator + routing logic + web server
-- **Agent Instances**: Independent Claude Code processes with HTTP APIs
-- **Settings System**: Dynamic agent configuration with localStorage persistence
-- **File Coordination**: Plain text files enable complex multi-step workflows
+**Multi-Agent Flow**:
+```
+User → General Request → Orchestrator Analysis → Execution Plan
+                                                ↓
+Agent 1 ← Step 1 ← File Dependencies ← Coordination Logic
+Agent 2 ← Step 2 ← Read Step 1 Output  
+Agent N ← Step N ← Read Previous Results
+```
 
 ## Development
 
-### Quality Checks
 ```bash
+# Desktop app
+make electron           # Run Electron app
+make dist              # Build production app  
+make dmg               # Build macOS installer
+
+# Quality checks
 make check      # Format, lint, typecheck, test
 make format     # Format code
-make lint       # Lint code  
 make test       # Run tests
-```
 
-### Building
-```bash
-make build-backend   # Build binary
-make build-frontend  # Build frontend assets
+# Building
+make build-backend   # Create binary
+make build-frontend  # Build frontend
 ```
 
 ## Contributing
 
-We welcome contributions! This project uses:
-- **Lefthook**: Pre-commit hooks ensure code quality
-- **Make**: Unified commands for development tasks
-- **TypeScript**: Full type safety across frontend and backend
-- **Dynamic Configuration**: No hardcoded agents - all configurable through UI
-- **HTTP APIs**: RESTful communication between orchestrator and agents
-
-## Credits
-
-**Original Project**: [sugyan/claude-code-webui](https://github.com/sugyan/claude-code-webui)
-
-This fork dramatically extends the original web interface concept with:
-- **Multi-agent orchestration**: Intelligent coordination between specialized agents
-- **Dynamic configuration**: Runtime agent management through web interface  
-- **HTTP-based communication**: Distributed agent architecture
-- **Smart routing**: Single @mentions vs multi-agent workflow detection
-- **Modern UI**: Enhanced chat interface with agent management
-
-The foundational web UI, streaming architecture, and Claude CLI integration come from the excellent work by sugyan.
+- **Lefthook**: Pre-commit hooks ensure quality
+- **TypeScript**: Full type safety
+- **HTTP APIs**: RESTful agent communication
+- **Dynamic config**: All agents configurable via UI
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License
