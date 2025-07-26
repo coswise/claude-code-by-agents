@@ -49,12 +49,26 @@ cd path/to/agent2 && deno task dev   # e.g., http://localhost:8082
 ### Agent Configuration
 
 1. Open **Settings** in the web interface
-2. Add agents with their respective:
+2. Configure API access:
+   - **Default**: Uses free public endpoint (no setup required)
+   - **Custom**: Set your API endpoint URL for private deployment
+3. Add agents with their respective:
    - **Name**: Human-readable agent name
    - **Description**: What the agent specializes in
    - **Working Directory**: Local path to agent's project
    - **API Endpoint**: HTTP endpoint where agent instance runs
-3. The first agent automatically becomes the orchestrator
+4. The first agent automatically becomes the orchestrator
+
+## API Key Design
+
+The system uses a **hybrid approach** for Claude API access:
+
+- **Planner/Orchestrator**: Uses API key for task analysis and coordination
+- **Agent Execution**: Uses local Claude CLI subscription for actual work
+- **Default Setup**: Free public endpoint (no API key required)
+- **Custom Setup**: Configure your own API endpoint in Settings
+
+This design minimizes API costs while leveraging your existing Claude subscription for the heavy lifting.
 
 ## How It Works
 
