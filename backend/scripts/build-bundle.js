@@ -9,7 +9,7 @@
 
 import { build } from "esbuild";
 
-// Build with esbuild
+// Build CLI bundle
 await build({
   entryPoints: ["cli/node.ts"],
   bundle: true,
@@ -26,4 +26,19 @@ await build({
   sourcemap: true,
 });
 
-console.log("✅ Bundle created successfully");
+// Build Lambda handler
+await build({
+  entryPoints: ["lambda.ts"],
+  bundle: true,
+  platform: "node",
+  target: "node20",
+  format: "esm",
+  outfile: "dist/lambda.js",
+  external: [
+    "@anthropic-ai/claude-code",
+  ],
+  sourcemap: true,
+});
+
+console.log("✅ CLI bundle created successfully");
+console.log("✅ Lambda bundle created successfully");

@@ -11,3 +11,7 @@ frontend/playwright-report/
 frontend/playwright/.cache/
 
 node_modules/
+
+# sam build artifacts
+**/bin
+.aws-sam/
