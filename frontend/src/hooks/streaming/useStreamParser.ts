@@ -289,6 +289,10 @@ export function useStreamParser() {
           };
           context.addMessage(abortedMessage);
           context.setCurrentAssistantMessage(null);
+        } else if (data.type === "done") {
+          // Request completed successfully - clean up current assistant message and signal completion
+          context.setCurrentAssistantMessage(null);
+          context.onRequestComplete?.();
         }
       } catch (parseError) {
         console.error("Failed to parse stream line:", parseError);

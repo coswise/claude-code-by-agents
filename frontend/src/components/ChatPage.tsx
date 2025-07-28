@@ -156,6 +156,7 @@ export function ChatPage() {
         // Local state for this streaming session
         let localHasReceivedInit = false;
         let shouldAbort = false;
+        let isComplete = false;
 
         const streamingContext: StreamingContext = {
           currentAssistantMessage,
@@ -177,21 +178,24 @@ export function ChatPage() {
             shouldAbort = true;
             await createAbortHandler(requestId)();
           },
+          onRequestComplete: () => {
+            isComplete = true;
+          },
         };
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done || shouldAbort) break;
+          if (done || shouldAbort || isComplete) break;
 
           const chunk = decoder.decode(value);
           const lines = chunk.split("\n").filter((line) => line.trim());
 
           for (const line of lines) {
-            if (shouldAbort) break;
+            if (shouldAbort || isComplete) break;
             processStreamLine(line, streamingContext);
           }
 
-          if (shouldAbort) break;
+          if (shouldAbort || isComplete) break;
         }
       } catch (error) {
         console.error("Failed to send message:", error);
