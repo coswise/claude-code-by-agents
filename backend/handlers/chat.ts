@@ -50,11 +50,13 @@ async function* executeAgentHttpRequest(
       console.debug(`[DEBUG] Request payload:`, JSON.stringify(agentChatRequest, null, 2));
     }
 
-    // Make HTTP request to the agent's endpoint
+    // Make HTTP request to the agent's endpoint with timeout
     const response = await fetch(`${agent.apiEndpoint}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Connection": "keep-alive",
+        "Cache-Control": "no-cache",
       },
       body: JSON.stringify(agentChatRequest),
       signal: abortController.signal,
@@ -73,8 +75,24 @@ async function* executeAgentHttpRequest(
     const decoder = new TextDecoder();
 
     try {
+      let timeoutId: NodeJS.Timeout | null = null;
+      
       while (true) {
-        const { done, value } = await reader.read();
+        // Add timeout for each read operation
+        const readPromise = reader.read();
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Stream read timeout after 30 seconds'));
+          }, 30000);
+        });
+
+        const { done, value } = await Promise.race([readPromise, timeoutPromise]);
+        
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
@@ -476,6 +494,17 @@ export async function handleChatRequest(
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // Send an immediate connection acknowledgment to prevent 504 timeout
+        const ackResponse: StreamResponse = {
+          type: "claude_json",
+          data: {
+            type: "system",
+            subtype: "connection_ack",
+            timestamp: Date.now(),
+          }
+        };
+        controller.enqueue(new TextEncoder().encode(JSON.stringify(ackResponse) + "\n"));
+
         // Check if this is a single-agent mention that should use HTTP request
         let executionMethod;
         
@@ -559,7 +588,9 @@ export async function handleChatRequest(
     headers: {
       "Content-Type": "application/x-ndjson",
       "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+      "Connection": "keep-alive",
+      "Transfer-Encoding": "chunked",
+      "X-Accel-Buffering": "no", // Disable proxy buffering
     },
   });
 }
