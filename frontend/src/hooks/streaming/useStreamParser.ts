@@ -140,7 +140,7 @@ export function useStreamParser() {
         if (contentItem.type === "text") {
           handleAssistantTextMessage(contentItem, context);
         } else if (contentItem.type === "tool_use") {
-          handleToolUseMessage(contentItem, context);
+          handleToolUseMessage(contentItem as any, context);
         }
       }
     },
@@ -201,7 +201,7 @@ export function useStreamParser() {
             }
             
             // Regular tool result processing
-            processToolResult(contentItem, context, createToolResultMessage);
+            processToolResult(contentItem as any, context, createToolResultMessage);
           }
         }
       }

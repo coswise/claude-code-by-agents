@@ -387,7 +387,7 @@ function AgentFormModal({ agent, onSave, onCancel }: AgentFormModalProps) {
     workingDirectory: agent?.workingDirectory || '',
     description: agent?.description || '',
     color: agent?.color || 'bg-blue-500',
-    apiEndpoint: agent?.apiEndpoint || 'https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod',
+    apiEndpoint: agent?.apiEndpoint || 'https://api.claudecode.run',
   });
 
   const handleSave = () => {
@@ -512,7 +512,7 @@ function AgentFormModal({ agent, onSave, onCancel }: AgentFormModalProps) {
             type="url"
             value={formData.apiEndpoint}
             onChange={(e) => setFormData(prev => ({ ...prev, apiEndpoint: e.target.value }))}
-            placeholder="https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod"
+            placeholder="https://api.claudecode.run"
             style={{
               width: "100%",
               padding: "8px 12px",

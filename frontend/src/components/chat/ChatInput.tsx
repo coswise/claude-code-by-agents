@@ -3,7 +3,7 @@ import { StopIcon } from "@heroicons/react/24/solid";
 import { UI_CONSTANTS, KEYBOARD_SHORTCUTS } from "../../utils/constants";
 import { useEnterBehavior } from "../../hooks/useEnterBehavior";
 import { EnterModeMenu } from "./EnterModeMenu";
-import { PREDEFINED_AGENTS, parseAgentMention } from "../../config/agents";
+import { parseAgentMention } from "../../config/agents";
 
 interface ChatInputProps {
   input: string;

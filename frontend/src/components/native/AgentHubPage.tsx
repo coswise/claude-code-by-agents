@@ -22,7 +22,7 @@ export function AgentHubPage() {
   useTheme(); // For theme switching support
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
-  const { getAgentById, getOrchestratorAgent, getWorkerAgents, config } = useAgentConfig();
+  const { getAgentById, getOrchestratorAgent, config } = useAgentConfig();
 
   const {
     messages,
@@ -47,7 +47,6 @@ export function AgentHubPage() {
     startRequest,
     switchToAgent,
     getTargetAgentId,
-    getCurrentSession,
     getGroupChatContext,
   } = useChatState();
 

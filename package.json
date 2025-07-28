@@ -47,7 +47,6 @@
     "dmg": {
       "title": "AgentHub ${version}",
       "icon": "assets/icon.icns",
-      "background": "assets/dmg-background.png",
       "contents": [
         {
           "x": 130,

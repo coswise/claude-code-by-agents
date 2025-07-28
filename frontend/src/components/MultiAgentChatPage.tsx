@@ -1,6 +1,5 @@
 import { useEffect, useCallback } from "react";
 import type { ChatRequest, ChatMessage } from "../types";
-import { useTheme } from "../hooks/useTheme";
 import { useClaudeStreaming } from "../hooks/useClaudeStreaming";
 import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";

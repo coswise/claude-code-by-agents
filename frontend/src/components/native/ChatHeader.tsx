@@ -19,7 +19,7 @@ const getAgentColor = (agentId: string) => {
   return colorMap[agentId] || "var(--claude-text-accent)";
 };
 
-export function ChatHeader({ currentMode, activeAgentId, onModeToggle }: ChatHeaderProps) {
+export function ChatHeader({ currentMode, activeAgentId }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
   const { getAgentById } = useAgentConfig();
   const currentAgent = activeAgentId ? getAgentById(activeAgentId) : null;

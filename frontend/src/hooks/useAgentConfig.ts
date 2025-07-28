@@ -21,7 +21,7 @@ const DEFAULT_AGENTS: Agent[] = [
     workingDirectory: "/tmp/orchestrator",
     color: "bg-gradient-to-r from-blue-500 to-purple-500",
     description: "Intelligent orchestrator that coordinates multi-agent workflows",
-    apiEndpoint: "https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod",
+    apiEndpoint: "https://api.claudecode.run",
     isOrchestrator: true
   }
 ];

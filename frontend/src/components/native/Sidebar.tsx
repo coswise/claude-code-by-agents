@@ -32,7 +32,7 @@ export function Sidebar({
   onModeChange 
 }: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const { getWorkerAgents, isInitialized } = useAgentConfig();
+  const { getWorkerAgents } = useAgentConfig();
   const agents = getWorkerAgents();
 
   return (
