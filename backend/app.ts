@@ -54,6 +54,16 @@ export function createApp(
   );
 
   // API routes
+  // Health check endpoint
+  app.get("/api/health", (c) => {
+    return c.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      service: "claude-code-web-agent",
+      version: "0.1.37"
+    });
+  });
+
   app.get("/api/projects", (c) => handleProjectsRequest(c));
 
   app.get("/api/projects/:encodedProjectName/histories", (c) =>
