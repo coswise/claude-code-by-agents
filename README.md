@@ -11,7 +11,7 @@ Desktop app for multi-agent orchestration with Claude CLI. Route tasks to specia
 - **`@agent-name` mentions**: Direct execution, no orchestration overhead
 - **Multi-agent workflows**: Automatic task decomposition and coordination  
 - **Local + Remote agents**: Mix local agents and remote machines (Mac Mini browser agent, cloud instances, etc.)
-- **Free public API**: No API key required (uses my endpoint by default)
+- **Free orchestrator Anthropic usage**: No API key required (uses my endpoint to cover your cost by default ) Sure you can bring your own API_KEY
 - **Custom API support**: Configure your own endpoint in Settings
 - **Dynamic agents**: Add/remove agents via web UI
 
