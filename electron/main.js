@@ -4,6 +4,9 @@ const path = require('path');
 // Keep a global reference of the window object
 let mainWindow;
 
+// Set a consistent user data path for localStorage persistence
+app.setPath('userData', path.join(app.getPath('appData'), 'CodeByAgents'));
+
 const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
