@@ -2,7 +2,7 @@ import Foundation
 
 class AppSettings: ObservableObject {
     @Published var agents: [Agent] = []
-    @Published var apiBaseURL: String = "http://localhost:8080"
+    @Published var apiBaseURL: String = "https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod"
     @Published var selectedProjectPath: String?
     @Published var isDarkMode: Bool = false
     @Published var enableHapticFeedback: Bool = true
@@ -37,7 +37,7 @@ class AppSettings: ObservableObject {
         }
         
         // Load other settings
-        apiBaseURL = userDefaults.string(forKey: Keys.apiBaseURL) ?? "http://localhost:8080"
+        apiBaseURL = userDefaults.string(forKey: Keys.apiBaseURL) ?? "https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod"
         selectedProjectPath = userDefaults.string(forKey: Keys.selectedProjectPath)
         isDarkMode = userDefaults.bool(forKey: Keys.isDarkMode)
         enableHapticFeedback = userDefaults.bool(forKey: Keys.enableHapticFeedback)

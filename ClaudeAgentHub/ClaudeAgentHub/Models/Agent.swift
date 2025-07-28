@@ -21,26 +21,12 @@ struct Agent: Codable, Identifiable, Hashable {
     
     static let sampleAgents: [Agent] = [
         Agent(
-            id: "group-chat-agent",
-            name: "Group Chat Agent",
+            id: "orchestrator-agent",
+            name: "Orchestrator Agent",
             description: "Orchestrates multi-agent conversations",
-            workingDirectory: "/Users/user/projects",
-            apiEndpoint: "http://localhost:8080",
+            workingDirectory: "/tmp/orchestrator",
+            apiEndpoint: "https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod",
             isOrchestrator: true
-        ),
-        Agent(
-            id: "api-agent",
-            name: "API Backend Agent",
-            description: "Handles backend API development",
-            workingDirectory: "/Users/user/projects/backend",
-            apiEndpoint: "http://localhost:8081"
-        ),
-        Agent(
-            id: "frontend-agent",
-            name: "Frontend Agent",
-            description: "Handles React frontend development",
-            workingDirectory: "/Users/user/projects/frontend",
-            apiEndpoint: "http://localhost:8082"
         )
     ]
 }

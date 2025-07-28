@@ -98,14 +98,14 @@ export function AgentHubPage() {
     let messageContent = input.trim();
     let sessionToUse = currentSessionId;
 
-    // In group mode, always route to Group Chat Agent for orchestration
+    // In group mode, always route to Orchestrator Agent for orchestration
     if (isGroupMode) {
       const orchestratorAgent = getOrchestratorAgent();
       if (orchestratorAgent) {
         targetAgentId = orchestratorAgent.id;
         // Keep the full message with @mentions for the orchestrator to analyze
         messageContent = input.trim();
-        // Use group chat session instead of switching agent
+        // Use orchestrator session instead of switching agent
         const groupContext = getGroupChatContext();
         sessionToUse = groupContext.sessionId;
       } else {
@@ -263,7 +263,7 @@ export function AgentHubPage() {
       agentId: step.agent,
     };
 
-    // Use group chat context when in group mode
+    // Use orchestrator context when in group mode
     addMessage(userMessage, isGroupMode);
     startRequest();
 
@@ -278,7 +278,7 @@ export function AgentHubPage() {
     };
 
     try {
-      // For step execution, use the individual agent's session, not group chat session
+      // For step execution, use the individual agent's session, not orchestrator session
       const agentSession = agentSessions[step.agent];
       const stepSessionId = agentSession?.sessionId || undefined;
       

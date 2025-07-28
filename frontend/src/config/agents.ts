@@ -9,40 +9,12 @@ export interface Agent {
 
 export const PREDEFINED_AGENTS: Agent[] = [
   {
-    id: "group-chat",
-    name: "Chat with Agents",
-    workingDirectory: "/Users/buryhuang/git/group-chat-agent",
+    id: "orchestrator",
+    name: "Orchestrator Agent",
+    workingDirectory: "/tmp/orchestrator",
     color: "bg-gradient-to-r from-blue-500 to-purple-500",
     description: "Intelligent orchestrator that coordinates multi-agent workflows",
     isOrchestrator: true
-  },
-  {
-    id: "readymojo-admin",
-    name: "ReadyMojo Admin",
-    workingDirectory: "/Users/buryhuang/git/readymojo-admin",
-    color: "bg-blue-500",
-    description: "Admin dashboard and management interface"
-  },
-  {
-    id: "readymojo-api",
-    name: "ReadyMojo API",
-    workingDirectory: "/Users/buryhuang/git/readymojo-api",
-    color: "bg-green-500",
-    description: "Backend API and server logic"
-  },
-  {
-    id: "readymojo-web",
-    name: "ReadyMojo Web",
-    workingDirectory: "/Users/buryhuang/git/readymojo-web",
-    color: "bg-purple-500",
-    description: "Frontend web application"
-  },
-  {
-    id: "peakmojo-livekit",
-    name: "PeakMojo LiveKit",
-    workingDirectory: "/Users/buryhuang/git/peakmojo-livekit",
-    color: "bg-orange-500",
-    description: "LiveKit Voice Integration for PeakMojo"
   }
 ];
 

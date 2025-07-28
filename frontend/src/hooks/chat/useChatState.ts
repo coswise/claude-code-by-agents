@@ -20,16 +20,16 @@ export function useChatState() {
   const [currentAssistantMessage, setCurrentAssistantMessage] =
     useState<ChatMessage | null>(null);
   
-  // Group chat session - separate from individual agent sessions
-  const [groupChatSession, setGroupChatSession] = useState<AgentSession>({
+  // Orchestrator session - separate from individual agent sessions
+  const [orchestratorSession, setGroupChatSession] = useState<AgentSession>({
     sessionId: null,
     messages: []
   });
 
-  // Get current session - use group chat session or agent session based on context
+  // Get current session - use orchestrator session or agent session based on context
   const getCurrentSession = (useGroupChat: boolean = false) => {
     if (useGroupChat) {
-      return groupChatSession;
+      return orchestratorSession;
     }
     const currentAgentId = activeAgentId || 'default';
     return agentSessions[currentAgentId] || { sessionId: null, messages: [] };
@@ -74,7 +74,7 @@ export function useChatState() {
     return "readymojo-admin"; // Default to admin agent
   }, [activeAgentId, lastUsedAgentId]);
 
-  // Add message - supports both group chat and individual agent modes
+  // Add message - supports both orchestrator and individual agent modes
   const addMessage = useCallback((msg: AllMessage, useGroupChat: boolean = false) => {
     if (useGroupChat) {
       setGroupChatSession(prev => ({
@@ -94,7 +94,7 @@ export function useChatState() {
     }
   }, [activeAgentId, getOrCreateAgentSession]);
 
-  // Update last message - supports both group chat and individual agent modes
+  // Update last message - supports both orchestrator and individual agent modes
   const updateLastMessage = useCallback((content: string, useGroupChat: boolean = false) => {
     if (useGroupChat) {
       setGroupChatSession(prev => {
@@ -130,7 +130,7 @@ export function useChatState() {
     }
   }, [activeAgentId, getOrCreateAgentSession]);
 
-  // Update session ID - supports both group chat and individual agent modes  
+  // Update session ID - supports both orchestrator and individual agent modes  
   const setCurrentSessionId = useCallback((sessionId: string | null, useGroupChat: boolean = false) => {
     if (useGroupChat) {
       setGroupChatSession(prev => ({
@@ -172,13 +172,13 @@ export function useChatState() {
     setHasReceivedInit(false);
   }, []);
 
-  // Get group chat context
+  // Get orchestrator context
   const getGroupChatContext = useCallback(() => {
     return {
-      messages: groupChatSession.messages,
-      sessionId: groupChatSession.sessionId,
+      messages: orchestratorSession.messages,
+      sessionId: orchestratorSession.sessionId,
     };
-  }, [groupChatSession]);
+  }, [orchestratorSession]);
 
   return {
     // State
@@ -193,7 +193,7 @@ export function useChatState() {
     activeAgentId,
     agentSessions,
     lastUsedAgentId,
-    groupChatSession,
+    orchestratorSession,
 
     // State setters
     setInput,

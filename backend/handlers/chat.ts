@@ -4,12 +4,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ChatRequest, StreamResponse } from "../../shared/types.ts";
 
 /**
- * Detects if the request is for the Chat with Agents orchestrator
+ * Detects if the request is for the Orchestrator agent
  * @param workingDirectory - The working directory path
- * @returns true if this is a Chat with Agents request
+ * @returns true if this is an Orchestrator request
  */
-function isGroupChatAgent(workingDirectory?: string): boolean {
-  return workingDirectory === "/Users/buryhuang/git/group-chat-agent";
+function isOrchestratorAgent(workingDirectory?: string): boolean {
+  return workingDirectory === "/tmp/orchestrator";
 }
 
 /**
@@ -130,7 +130,7 @@ async function* executeAgentHttpRequest(
 }
 
 /**
- * Executes Chat with Agents orchestration using direct Anthropic API
+ * Executes Orchestrator workflow using direct Anthropic API
  * @param message - User message
  * @param requestId - Unique request identifier
  * @param requestAbortControllers - Shared map of abort controllers
@@ -138,7 +138,7 @@ async function* executeAgentHttpRequest(
  * @param debugMode - Enable debug logging
  * @returns AsyncGenerator yielding StreamResponse objects
  */
-async function* executeGroupChatOrchestration(
+async function* executeOrchestratorWorkflow(
   message: string,
   requestId: string,
   requestAbortControllers: Map<string, AbortController>,
@@ -222,7 +222,7 @@ async function* executeGroupChatOrchestration(
       `- ${agent.id}: ${agent.description}`
     ).join('\n');
 
-    const systemPrompt = `You are the Chat with Agents orchestrator. Break user requests into steps where each agent saves results to a plain text file, and the next agent reads from that file.
+    const systemPrompt = `You are the Orchestrator agent. Break user requests into steps where each agent saves results to a plain text file, and the next agent reads from that file.
 
 Rules:
 1. Each agent saves results to the specified output_file path
@@ -479,7 +479,7 @@ export async function handleChatRequest(
         // Check if this is a single-agent mention that should use HTTP request
         let executionMethod;
         
-        if (isGroupChatAgent(chatRequest.workingDirectory) && chatRequest.availableAgents) {
+        if (isOrchestratorAgent(chatRequest.workingDirectory) && chatRequest.availableAgents) {
           // Check if message mentions only one specific agent
           const mentionMatches = chatRequest.message.match(/@(\w+(?:-\w+)*)/g);
           if (mentionMatches && mentionMatches.length === 1) {
@@ -503,7 +503,7 @@ export async function handleChatRequest(
               );
             } else {
               // Multi-agent orchestration
-              executionMethod = executeGroupChatOrchestration(
+              executionMethod = executeOrchestratorWorkflow(
                 chatRequest.message,
                 chatRequest.requestId,
                 requestAbortControllers,
@@ -514,7 +514,7 @@ export async function handleChatRequest(
             }
           } else {
             // Multi-agent or no mentions - use orchestration
-            executionMethod = executeGroupChatOrchestration(
+            executionMethod = executeOrchestratorWorkflow(
               chatRequest.message,
               chatRequest.requestId,
               requestAbortControllers,
@@ -524,7 +524,7 @@ export async function handleChatRequest(
             );
           }
         } else {
-          // Not group chat - use local Claude execution
+          // Not orchestrator - use local Claude execution
           executionMethod = executeClaudeCommand(
             chatRequest.message,
             chatRequest.requestId,

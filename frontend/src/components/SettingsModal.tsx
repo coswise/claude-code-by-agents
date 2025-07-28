@@ -11,7 +11,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { theme, toggleTheme } = useTheme();
-  const { config, resetConfig, addAgent, updateAgent, removeAgent } = useAgentConfig();
+  const { config, resetConfig, addAgent, updateAgent, removeAgent, isInitialized } = useAgentConfig();
   
   // Local state for modal management
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
@@ -241,7 +241,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           {/* Agent List */}
           <div style={{ marginBottom: "16px" }}>
-            {config.agents.map((agent) => (
+            {!isInitialized ? (
+              <div style={{ 
+                padding: "16px", 
+                textAlign: "center", 
+                color: "var(--claude-text-secondary)",
+                fontSize: "14px"
+              }}>
+                Loading agents...
+              </div>
+            ) : config.agents.map((agent) => (
               <div
                 key={agent.id}
                 style={{
@@ -264,7 +273,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       marginBottom: "2px"
                     }}
                   >
-                    {agent.name} {agent.isOrchestrator && "(Orchestrator)"}
+                    {agent.name} {agent.isOrchestrator && !agent.name.toLowerCase().includes('orchestrator') && "(Orchestrator)"}
                   </div>
                   <div 
                     style={{
@@ -275,16 +284,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   >
                     {agent.description}
                   </div>
-                  <div 
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--claude-text-muted)",
-                      fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
-                      marginBottom: "2px"
-                    }}
-                  >
-                    {agent.workingDirectory}
-                  </div>
+                  {!agent.isOrchestrator && (
+                    <div 
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--claude-text-muted)",
+                        fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace",
+                        marginBottom: "2px"
+                      }}
+                    >
+                      {agent.workingDirectory}
+                    </div>
+                  )}
                   <div 
                     style={{
                       fontSize: "11px",
@@ -376,14 +387,36 @@ function AgentFormModal({ agent, onSave, onCancel }: AgentFormModalProps) {
     workingDirectory: agent?.workingDirectory || '',
     description: agent?.description || '',
     color: agent?.color || 'bg-blue-500',
-    apiEndpoint: agent?.apiEndpoint || 'http://localhost:8080',
+    apiEndpoint: agent?.apiEndpoint || 'https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod',
   });
 
   const handleSave = () => {
-    if (!formData.name.trim() || !formData.workingDirectory.trim() || !formData.apiEndpoint.trim()) {
-      alert('Name, working directory, and API endpoint are required');
+    const isOrchestratorAgent = agent?.isOrchestrator;
+    const requiredFields = [formData.name.trim(), formData.apiEndpoint.trim()];
+    
+    if (!isOrchestratorAgent) {
+      requiredFields.push(formData.workingDirectory.trim());
+    }
+    
+    if (requiredFields.some(field => !field)) {
+      const missingFields = isOrchestratorAgent 
+        ? 'Name and API endpoint are required'
+        : 'Name, working directory, and API endpoint are required';
+      alert(missingFields);
       return;
     }
+
+    // Validation: Check if fields might be swapped
+    if (!isOrchestratorAgent) {
+      const workingDirLooksLikeUrl = formData.workingDirectory.trim().startsWith('http');
+      const apiEndpointLooksLikePath = !formData.apiEndpoint.trim().startsWith('http');
+      
+      if (workingDirLooksLikeUrl || apiEndpointLooksLikePath) {
+        alert('It looks like Working Directory and API Endpoint might be swapped. Working Directory should be a file path (e.g., /path/to/project), and API Endpoint should be a URL (e.g., https://...)');
+        return;
+      }
+    }
+    
     onSave(formData);
   };
 
@@ -448,26 +481,28 @@ function AgentFormModal({ agent, onSave, onCancel }: AgentFormModalProps) {
           />
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--claude-text-primary)", marginBottom: "6px" }}>
-            Working Directory *
-          </label>
-          <input
-            type="text"
-            value={formData.workingDirectory}
-            onChange={(e) => setFormData(prev => ({ ...prev, workingDirectory: e.target.value }))}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              border: "1px solid var(--claude-border)",
-              background: "var(--claude-input-bg)",
-              color: "var(--claude-text-primary)",
-              fontSize: "13px",
-              fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace"
-            }}
-          />
-        </div>
+        {!agent?.isOrchestrator && (
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--claude-text-primary)", marginBottom: "6px" }}>
+              Working Directory *
+            </label>
+            <input
+              type="text"
+              value={formData.workingDirectory}
+              onChange={(e) => setFormData(prev => ({ ...prev, workingDirectory: e.target.value }))}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid var(--claude-border)",
+                background: "var(--claude-input-bg)",
+                color: "var(--claude-text-primary)",
+                fontSize: "13px",
+                fontFamily: "'SF Mono', Monaco, 'Cascadia Code', monospace"
+              }}
+            />
+          </div>
+        )}
 
         <div style={{ marginBottom: "16px" }}>
           <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--claude-text-primary)", marginBottom: "6px" }}>
@@ -477,7 +512,7 @@ function AgentFormModal({ agent, onSave, onCancel }: AgentFormModalProps) {
             type="url"
             value={formData.apiEndpoint}
             onChange={(e) => setFormData(prev => ({ ...prev, apiEndpoint: e.target.value }))}
-            placeholder="http://localhost:8080"
+            placeholder="https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod"
             style={{
               width: "100%",
               padding: "8px 12px",

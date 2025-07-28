@@ -261,7 +261,7 @@ struct MessageBubbleView: View {
                     type: .assistant,
                     role: .assistant,
                     content: "I'll help you create a user authentication system. Let me break this down into steps and coordinate with our team of agents.",
-                    agentId: "group-chat-agent"
+                    agentId: "orchestrator-agent"
                 )
             )
             
@@ -283,7 +283,7 @@ struct MessageBubbleView: View {
                     type: .executionPlan,
                     role: .assistant,
                     content: "Execution plan created",
-                    agentId: "group-chat-agent",
+                    agentId: "orchestrator-agent",
                     executionSteps: ExecutionStep.sampleSteps
                 )
             )

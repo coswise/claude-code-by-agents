@@ -7,7 +7,7 @@ A native iOS app that replicates the functionality of the Claude Code Web Agent 
 ### 🤖 Multi-Agent Management
 - Configure and manage multiple AI agents (local and remote)
 - Support for orchestrator agents that coordinate workflows
-- Individual agent conversations and group chat modes
+- Individual agent conversations and orchestrator modes
 - Agent-specific working directories and API endpoints
 
 ### 💬 Real-Time Chat Interface
@@ -124,11 +124,11 @@ The app supports the same streaming JSON format as the web application:
 
 ### Setting Up Agents
 1. Go to Settings → Agents
-2. Add an orchestrator agent (for group chat coordination)
+2. Add an orchestrator agent (for multi-agent coordination)
 3. Add worker agents for specific tasks (API, frontend, etc.)
 4. Configure working directories and API endpoints for each agent
 
-### Group Chat Mode
+### Orchestrator Mode
 - Orchestrator coordinates multiple agents
 - Use @mentions to direct tasks to specific agents
 - View execution plans for multi-step workflows

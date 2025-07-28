@@ -50,7 +50,7 @@ make dmg
 - **Renderer**: Frontend React app with native Claude Desktop styling
 
 ### Multi-Agent System
-- **Group Chat Mode**: Collaborative chat with all agents
+- **Orchestrator Mode**: Collaborative orchestration with all agents
 - **Individual Agent Mode**: Direct chat with specific agent in their working directory
 - **@mention System**: Switch between agents using @mention syntax
 - **Session Isolation**: Each agent maintains separate conversation history

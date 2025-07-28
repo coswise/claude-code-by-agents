@@ -111,19 +111,19 @@ extension ChatMessage {
             type: .chat,
             role: .user,
             content: "Create a user authentication system",
-            agentId: "group-chat-agent"
+            agentId: "orchestrator-agent"
         ),
         ChatMessage(
             type: .assistant,
             role: .assistant,
             content: "I'll help you create a user authentication system. Let me break this down into steps for our team of agents.",
-            agentId: "group-chat-agent"
+            agentId: "orchestrator-agent"
         ),
         ChatMessage(
             type: .executionPlan,
             role: .assistant,
             content: "Execution plan created",
-            agentId: "group-chat-agent",
+            agentId: "orchestrator-agent",
             executionSteps: [
                 ExecutionStep(id: "1", agent: "api-agent", message: "Create user model and authentication endpoints"),
                 ExecutionStep(id: "2", agent: "frontend-agent", message: "Create login and registration forms", dependencies: ["1"])

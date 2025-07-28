@@ -66,7 +66,7 @@ struct Constants {
         static let projectsTab = "Projects"
         static let settingsTab = "Settings"
         
-        static let groupMode = "Group Chat"
+        static let groupMode = "Orchestrator"
         static let agentMode = "Agent View"
         
         static let sendMessage = "Send message..."
@@ -97,7 +97,7 @@ struct Constants {
     struct Network {
         static let defaultTimeout: TimeInterval = 30
         static let streamingTimeout: TimeInterval = 300
-        static let defaultAPIBaseURL = "http://localhost:8080"
+        static let defaultAPIBaseURL = "https://yojiyqt7l2.execute-api.us-east-1.amazonaws.com/prod"
     }
     
     // MARK: - Haptic Feedback

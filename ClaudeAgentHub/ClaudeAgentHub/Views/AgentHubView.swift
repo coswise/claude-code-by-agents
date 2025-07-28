@@ -46,7 +46,7 @@ struct AgentHubView: View {
             chatViewModel.appSettings = appSettings
         }
         .alert("New Chat", isPresented: $showingNewChatAlert) {
-            Button("Group Chat") {
+            Button("Orchestrator") {
                 startNewGroupChat()
             }
             if !appSettings.getWorkerAgents().isEmpty {
@@ -83,7 +83,7 @@ struct AgentHubView: View {
         .background(Color.cardBackground)
     }
     
-    // MARK: - Group Chat View
+    // MARK: - Orchestrator View
     @ViewBuilder
     private func GroupChatView() -> some View {
         VStack(spacing: 0) {
@@ -98,7 +98,7 @@ struct AgentHubView: View {
                         .foregroundColor(Constants.Colors.warning)
                     Text("No Orchestrator Agent")
                         .font(.headline)
-                    Text("Configure an orchestrator agent in Settings to use group chat")
+                    Text("Configure an orchestrator agent in Settings to use orchestration")
                         .font(.caption)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
