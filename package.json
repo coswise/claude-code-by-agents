@@ -1,13 +1,13 @@
 {
-  "name": "agenthub",
-  "productName": "AgentHub",
-  "version": "1.0.0",
+  "name": "codebyagents",
+  "productName": "Code By Agents",
+  "version": "0.0.1",
   "description": "Multi-Agent Programming Collaboration Tool",
   "main": "electron/main.js",
   "scripts": {
     "electron": "electron .",
     "electron:dev": "NODE_ENV=development electron .",
-    "build": "npm run build:frontend && npm run build:backend",
+    "build": "npm run build:frontend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "pack": "electron-builder --dir",
@@ -18,8 +18,8 @@
     "postinstall": "cd frontend && npm install && cd ../backend && npm install"
   },
   "build": {
-    "appId": "com.agenthub.app",
-    "productName": "AgentHub",
+    "appId": "com.codebyagents.app",
+    "productName": "Code By Agents",
     "electronVersion": "32.2.7",
     "directories": {
       "output": "dist"
@@ -27,7 +27,6 @@
     "files": [
       "electron/**/*",
       "frontend/dist/**/*",
-      "backend/dist/**/*",
       "package.json"
     ],
     "mac": {
@@ -45,7 +44,7 @@
       "entitlementsInherit": "assets/entitlements.mac.plist"
     },
     "dmg": {
-      "title": "AgentHub ${version}",
+      "title": "Code By Agents ${version}",
       "icon": "assets/icon.icns",
       "contents": [
         {

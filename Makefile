@@ -70,8 +70,8 @@ dist: build
 	@echo "Building Electron app for distribution..."
 	npm run dist
 
-# Build macOS DMG
-dmg: build
+# Build macOS DMG (frontend-only)
+dmg: build-frontend
 	@echo "Building macOS DMG installer..."
 	npm run dist:mac
 

@@ -1,10 +1,8 @@
 const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 
 // Keep a global reference of the window object
 let mainWindow;
-let backendProcess;
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -61,35 +59,14 @@ function createWindow() {
 }
 
 function startBackend() {
-  if (isDev) {
-    // In development, assume backend is running separately
-    return;
-  }
-
-  // In production, start the backend process
-  const backendPath = path.join(__dirname, '../backend/dist/cli/node.js');
-  backendProcess = spawn('node', [backendPath, '--port', '8080'], {
-    stdio: 'pipe'
-  });
-
-  backendProcess.stdout.on('data', (data) => {
-    console.log(`Backend: ${data}`);
-  });
-
-  backendProcess.stderr.on('data', (data) => {
-    console.error(`Backend Error: ${data}`);
-  });
-
-  backendProcess.on('close', (code) => {
-    console.log(`Backend process exited with code ${code}`);
-  });
+  // Frontend-only app - no backend process needed
+  // The app will connect to the remote API endpoint
+  return;
 }
 
 function stopBackend() {
-  if (backendProcess) {
-    backendProcess.kill();
-    backendProcess = null;
-  }
+  // No backend process to stop in frontend-only app
+  return;
 }
 
 // App event handlers
@@ -119,15 +96,15 @@ app.on('before-quit', () => {
 if (process.platform === 'darwin') {
   const template = [
     {
-      label: 'AgentHub',
+      label: 'Code By Agents',
       submenu: [
         {
-          label: 'About AgentHub',
+          label: 'About Code By Agents',
           role: 'about'
         },
         { type: 'separator' },
         {
-          label: 'Hide AgentHub',
+          label: 'Hide Code By Agents',
           accelerator: 'Command+H',
           role: 'hide'
         },

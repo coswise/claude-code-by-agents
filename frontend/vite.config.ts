@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    base: "./", // Use relative paths for Electron compatibility
     resolve: {
       alias: {
         "@shared": resolve(__dirname, "../shared"),
