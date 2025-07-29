@@ -153,6 +153,7 @@ export function AgentHubPage() {
       onSessionId: (sessionId) => setCurrentSessionId(sessionId, isGroupMode),
       addMessage: (msg) => addMessage(msg, isGroupMode),
       updateLastMessage: (content) => updateLastMessage(content, isGroupMode),
+      onRequestComplete: () => resetRequestState(),
     };
 
     try {
@@ -239,6 +240,9 @@ export function AgentHubPage() {
     createAbortHandler,
     switchToAgent,
     getTargetAgentId,
+    getAgentById,
+    getOrchestratorAgent,
+    config,
   ]);
 
   // Handle execution of individual steps from orchestration plans
@@ -274,6 +278,7 @@ export function AgentHubPage() {
       onSessionId: (sessionId) => setCurrentSessionId(sessionId, isGroupMode),
       addMessage: (msg) => addMessage(msg, isGroupMode),
       updateLastMessage: (content) => updateLastMessage(content, isGroupMode),
+      onRequestComplete: () => resetRequestState(),
     };
 
     try {
@@ -354,6 +359,10 @@ export function AgentHubPage() {
     processStreamLine,
     createAbortHandler,
     resetRequestState,
+    getAgentById,
+    currentMode,
+    agentSessions,
+    config,
   ]);
 
   // Handle automatic execution of entire orchestration plan
