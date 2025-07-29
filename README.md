@@ -8,6 +8,9 @@ Multi-agent workspace for collaborative development with Claude CLI. Route tasks
 
 > **Forked from [sugyan/claude-code-webui](https://github.com/sugyan/claude-code-webui)**
 
+https://github.com/user-attachments/assets/0b4e6709-d9b9-4676-85e0-aec8e15fd097
+
+
 ## Key Features
 
 - **`@agent-name` mentions**: Direct execution, no orchestration overhead
