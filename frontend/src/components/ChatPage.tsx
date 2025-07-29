@@ -7,6 +7,7 @@ import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { useAbortController } from "../hooks/chat/useAbortController";
 import { useAutoHistoryLoader } from "../hooks/useHistoryLoader";
+import { useAgentConfig } from "../hooks/useAgentConfig";
 import { HistoryButton } from "./chat/HistoryButton";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
@@ -42,6 +43,7 @@ export function ChatPage() {
 
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
+  const { getOrchestratorAgent } = useAgentConfig();
 
   // Get encoded name for current working directory
   const getEncodedName = useCallback(() => {
@@ -136,7 +138,8 @@ export function ChatPage() {
       startRequest();
 
       try {
-        const response = await fetch(getChatUrl(), {
+        const orchestratorAgent = getOrchestratorAgent();
+        const response = await fetch(getChatUrl(orchestratorAgent?.apiEndpoint), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -298,7 +301,8 @@ export function ChatPage() {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const response = await fetch(getProjectsUrl());
+        const orchestratorAgent = getOrchestratorAgent();
+        const response = await fetch(getProjectsUrl(orchestratorAgent?.apiEndpoint));
         if (response.ok) {
           const data = await response.json();
           setProjects(data.projects || []);

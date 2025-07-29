@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { FolderIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { ProjectsResponse, ProjectInfo } from "../types";
 import { getProjectsUrl } from "../config/api";
+import { useAgentConfig } from "../hooks/useAgentConfig";
 
 export function ProjectSelector() {
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { getOrchestratorAgent } = useAgentConfig();
 
   useEffect(() => {
     loadProjects();
@@ -17,7 +19,8 @@ export function ProjectSelector() {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch(getProjectsUrl());
+      const orchestratorAgent = getOrchestratorAgent();
+      const response = await fetch(getProjectsUrl(orchestratorAgent?.apiEndpoint));
       if (!response.ok) {
         throw new Error(`Failed to load projects: ${response.statusText}`);
       }

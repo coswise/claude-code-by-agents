@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ConversationSummary } from "../../../shared/types";
 import { getHistoriesUrl } from "../config/api";
+import { useAgentConfig } from "../hooks/useAgentConfig";
 
 interface HistoryViewProps {
   workingDirectory: string;
@@ -14,6 +15,7 @@ export function HistoryView({ encodedName }: HistoryViewProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { getOrchestratorAgent } = useAgentConfig();
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -24,7 +26,8 @@ export function HistoryView({ encodedName }: HistoryViewProps) {
 
       try {
         setLoading(true);
-        const response = await fetch(getHistoriesUrl(encodedName));
+        const orchestratorAgent = getOrchestratorAgent();
+        const response = await fetch(getHistoriesUrl(encodedName, orchestratorAgent?.apiEndpoint));
 
         if (!response.ok) {
           throw new Error(

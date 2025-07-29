@@ -1,4 +1,4 @@
-// API configuration - uses relative paths with Vite proxy in development
+// API configuration - uses orchestrator agent settings
 export const API_CONFIG = {
   ENDPOINTS: {
     CHAT: "/api/chat",
@@ -9,36 +9,44 @@ export const API_CONFIG = {
   },
 } as const;
 
-// Helper function to get full API URL
-export const getApiUrl = (endpoint: string) => {
-  return endpoint;
+// Helper function to get full API URL using orchestrator agent configuration
+export const getApiUrl = (endpoint: string, orchestratorEndpoint?: string) => {
+  // In development, check if we should use local backend
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_LOCAL_API === "true") {
+    return endpoint; // Use Vite proxy
+  }
+  
+  // Use orchestrator endpoint if provided, otherwise fallback to default
+  const baseUrl = orchestratorEndpoint || "https://api.claudecode.run";
+  return `${baseUrl}${endpoint}`;
 };
 
 // Helper function to get abort URL
-export const getAbortUrl = (requestId: string) => {
-  return `${API_CONFIG.ENDPOINTS.ABORT}/${requestId}`;
+export const getAbortUrl = (requestId: string, orchestratorEndpoint?: string) => {
+  return getApiUrl(`${API_CONFIG.ENDPOINTS.ABORT}/${requestId}`, orchestratorEndpoint);
 };
 
 // Helper function to get chat URL
-export const getChatUrl = () => {
-  return API_CONFIG.ENDPOINTS.CHAT;
+export const getChatUrl = (orchestratorEndpoint?: string) => {
+  return getApiUrl(API_CONFIG.ENDPOINTS.CHAT, orchestratorEndpoint);
 };
 
 // Helper function to get projects URL
-export const getProjectsUrl = () => {
-  return API_CONFIG.ENDPOINTS.PROJECTS;
+export const getProjectsUrl = (orchestratorEndpoint?: string) => {
+  return getApiUrl(API_CONFIG.ENDPOINTS.PROJECTS, orchestratorEndpoint);
 };
 
 // Helper function to get histories URL
-export const getHistoriesUrl = (projectPath: string) => {
+export const getHistoriesUrl = (projectPath: string, orchestratorEndpoint?: string) => {
   const encodedPath = encodeURIComponent(projectPath);
-  return `${API_CONFIG.ENDPOINTS.HISTORIES}/${encodedPath}/histories`;
+  return getApiUrl(`${API_CONFIG.ENDPOINTS.HISTORIES}/${encodedPath}/histories`, orchestratorEndpoint);
 };
 
 // Helper function to get conversation URL
 export const getConversationUrl = (
   encodedProjectName: string,
   sessionId: string,
+  orchestratorEndpoint?: string,
 ) => {
-  return `${API_CONFIG.ENDPOINTS.CONVERSATIONS}/${encodedProjectName}/histories/${sessionId}`;
+  return getApiUrl(`${API_CONFIG.ENDPOINTS.CONVERSATIONS}/${encodedProjectName}/histories/${sessionId}`, orchestratorEndpoint);
 };

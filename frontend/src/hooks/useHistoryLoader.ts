@@ -3,6 +3,7 @@ import type { AllMessage, TimestampedSDKMessage } from "../types";
 import type { ConversationHistory } from "../../../shared/types";
 import { getConversationUrl } from "../config/api";
 import { useMessageConverter } from "./useMessageConverter";
+import { useAgentConfig } from "./useAgentConfig";
 
 interface HistoryLoaderState {
   messages: AllMessage[];
@@ -41,6 +42,7 @@ export function useHistoryLoader(): HistoryLoaderResult {
   });
 
   const { convertConversationHistory } = useMessageConverter();
+  const { getOrchestratorAgent } = useAgentConfig();
 
   const loadHistory = useCallback(
     async (encodedProjectName: string, sessionId: string) => {
@@ -59,8 +61,9 @@ export function useHistoryLoader(): HistoryLoaderResult {
           error: null,
         }));
 
+        const orchestratorAgent = getOrchestratorAgent();
         const response = await fetch(
-          getConversationUrl(encodedProjectName, sessionId),
+          getConversationUrl(encodedProjectName, sessionId, orchestratorAgent?.apiEndpoint),
         );
 
         if (!response.ok) {

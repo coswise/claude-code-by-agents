@@ -1,14 +1,18 @@
 import { useCallback } from "react";
 import { getAbortUrl } from "../../config/api";
+import { useAgentConfig } from "../useAgentConfig";
 
 export function useAbortController() {
+  const { getOrchestratorAgent } = useAgentConfig();
+  
   // Helper function to perform abort request
   const performAbortRequest = useCallback(async (requestId: string) => {
-    await fetch(getAbortUrl(requestId), {
+    const orchestratorAgent = getOrchestratorAgent();
+    await fetch(getAbortUrl(requestId, orchestratorAgent?.apiEndpoint), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
-  }, []);
+  }, [getOrchestratorAgent]);
 
   const abortRequest = useCallback(
     async (

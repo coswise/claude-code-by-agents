@@ -4,6 +4,7 @@ import { useClaudeStreaming } from "../hooks/useClaudeStreaming";
 import { useChatState } from "../hooks/chat/useChatState";
 import { usePermissions } from "../hooks/chat/usePermissions";
 import { useAbortController } from "../hooks/chat/useAbortController";
+import { useAgentConfig } from "../hooks/useAgentConfig";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatMessages } from "./chat/ChatMessages";
 import { AgentSelector } from "./chat/AgentSelector";
@@ -16,6 +17,7 @@ import type { StreamingContext } from "../hooks/streaming/useMessageProcessor";
 export function MultiAgentChatPage() {
   const { processStreamLine } = useClaudeStreaming();
   const { abortRequest, createAbortHandler } = useAbortController();
+  const { getOrchestratorAgent } = useAgentConfig();
 
   const {
     messages,
@@ -112,7 +114,8 @@ export function MultiAgentChatPage() {
         workingDirectory: activeAgentId ? getAgentById(activeAgentId)?.workingDirectory : undefined,
       };
 
-      const response = await fetch(getChatUrl(), {
+      const orchestratorAgent = getOrchestratorAgent();
+      const response = await fetch(getChatUrl(orchestratorAgent?.apiEndpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chatRequest),
