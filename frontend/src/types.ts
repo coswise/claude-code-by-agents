@@ -71,7 +71,7 @@ export type TimestampedSDKMessage =
   | TimestampedSDKSystemMessage
   | TimestampedSDKResultMessage;
 
-// Execution step from Chat with Agents orchestrator
+// Execution step from Agent Room orchestrator
 export type ExecutionStep = {
   id: string;
   agent: string;
@@ -82,7 +82,7 @@ export type ExecutionStep = {
   dependencies?: string[];
 };
 
-// Orchestration message for Chat with Agents responses
+// Orchestration message for Agent Room responses
 export type OrchestrationMessage = {
   type: "orchestration";
   steps: ExecutionStep[];

@@ -90,7 +90,7 @@ function EmptyState() {
   return (
     <div className="empty-state">
       <div className="empty-state-icon">👨‍💻</div>
-      <h3>Start coding with agents</h3>
+      <h3>Welcome to Agentrooms</h3>
       <p>Assign a task or @mention agents to start</p>
     </div>
   );

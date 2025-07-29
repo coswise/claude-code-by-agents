@@ -1,6 +1,6 @@
-# Claude Code Web Agent
+# Agentrooms
 
-A web-based interface for the `claude` command line tool that provides streaming responses in a chat interface.
+Agentrooms is a multi-agent workspace that provides a web-based interface for collaborative development with specialized agents.
 
 ## Code Quality
 

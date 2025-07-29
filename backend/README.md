@@ -1,6 +1,6 @@
-# Code By Agents
+# Agentrooms
 
-Desktop app for multi-agent orchestration with Claude CLI. Route tasks to specialized agents (local or remote), coordinate complex workflows.
+Multi-agent workspace for collaborative development with Claude CLI. Route tasks to specialized agents (local or remote), coordinate complex workflows.
 
 <img width="1304" height="811" alt="Screenshot 2025-07-25 at 10 00 57 AM" src="https://github.com/user-attachments/assets/99c6095c-8c1d-4a69-a240-2a974e01c097" />
 

@@ -47,7 +47,7 @@ export function AgentHubPage() {
     startRequest,
     switchToAgent,
     getTargetAgentId,
-    getGroupChatContext,
+    getAgentRoomContext,
   } = useChatState();
 
   const {
@@ -85,7 +85,7 @@ export function AgentHubPage() {
     setCurrentMode(prev => prev === "group" ? "agent" : "group");
   }, []);
 
-  const handleNewGroupChat = useCallback(() => {
+  const handleNewAgentRoom = useCallback(() => {
     setCurrentMode("group");
   }, []);
 
@@ -105,7 +105,7 @@ export function AgentHubPage() {
         // Keep the full message with @mentions for the orchestrator to analyze
         messageContent = input.trim();
         // Use orchestrator session instead of switching agent
-        const groupContext = getGroupChatContext();
+        const groupContext = getAgentRoomContext();
         sessionToUse = groupContext.sessionId;
       } else {
         // Fallback to old behavior if no orchestrator found
@@ -440,7 +440,7 @@ export function AgentHubPage() {
         activeAgentId={activeAgentId}
         agentSessions={agentSessions}
         onAgentSelect={handleAgentSwitch}
-        onNewGroupChat={handleNewGroupChat}
+        onNewAgentRoom={handleNewAgentRoom}
         currentMode={currentMode}
         onModeChange={setCurrentMode}
       />
@@ -468,7 +468,7 @@ export function AgentHubPage() {
             {/* Messages Area */}
             <div className="messages-container">
               <ChatMessages 
-                messages={currentMode === "group" ? getGroupChatContext().messages : messages} 
+                messages={currentMode === "group" ? getAgentRoomContext().messages : messages} 
                 isLoading={isLoading} 
                 onExecuteStep={handleExecuteStep}
                 onExecutePlan={handleExecutePlan}

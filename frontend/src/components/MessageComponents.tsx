@@ -196,7 +196,7 @@ export function OrchestrationMessageComponent({
       <div className="message-content">
         {/* Header */}
         <div className="message-header">
-          <span className="message-author">Chat with Agents</span>
+          <span className="message-author">Agent Room</span>
           <span className="message-time">{formatTime(message.timestamp)}</span>
         </div>
 

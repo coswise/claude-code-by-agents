@@ -1,15 +1,16 @@
 {
-  "name": "claude-code-webui",
+  "name": "agentrooms",
   "version": "0.1.37",
   "type": "module",
-  "description": "Web-based interface for the Claude Code CLI with streaming chat interface",
+  "description": "Agentrooms - Multi-agent workspace for collaborative development",
   "keywords": [
-    "claude",
-    "claude-cli",
+    "agentrooms",
+    "multi-agent",
     "ai",
-    "web-ui",
-    "chat",
+    "workspace",
+    "collaboration",
     "anthropic",
+    "claude",
     "backend",
     "nodejs"
   ],
@@ -26,7 +27,7 @@
   "homepage": "https://github.com/sugyan/claude-code-webui#readme",
   "main": "dist/cli/node.js",
   "bin": {
-    "claude-code-webui": "dist/cli/node.js"
+    "agentrooms": "dist/cli/node.js"
   },
   "files": [
     "dist/",

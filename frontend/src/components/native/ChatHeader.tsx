@@ -36,7 +36,7 @@ export function ChatHeader({ currentMode, activeAgentId }: ChatHeaderProps) {
               <Users size={12} />
             </div>
             <div className="chat-header-info">
-              <h2>Chat with Agents</h2>
+              <h2>Agent Room</h2>
               <p>@mention to call out agents</p>
             </div>
           </>

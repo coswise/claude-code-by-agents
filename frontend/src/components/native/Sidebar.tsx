@@ -7,7 +7,7 @@ interface SidebarProps {
   activeAgentId: string | null;
   agentSessions: Record<string, { sessionId: string | null; messages: any[] }>;
   onAgentSelect: (agentId: string) => void;
-  onNewGroupChat: () => void;
+  onNewAgentRoom: () => void;
   currentMode: "group" | "agent";
   onModeChange: (mode: "group" | "agent") => void;
 }
@@ -27,7 +27,7 @@ export function Sidebar({
   activeAgentId, 
   agentSessions, 
   onAgentSelect, 
-  onNewGroupChat,
+  onNewAgentRoom,
   currentMode,
   onModeChange 
 }: SidebarProps) {
@@ -44,21 +44,21 @@ export function Sidebar({
             <MessageCircle size={14} />
           </div>
           <div className="sidebar-brand-text">
-            <h1>CodeByAgents</h1>
-            <p>Multi-Agent Code Collaboration</p>
+            <h1>Agentrooms</h1>
+            <p>Multi-Agent Workspace</p>
           </div>
         </div>
 
-        {/* Chat with Agents Button */}
+        {/* Agent Room Button */}
         <button
           onClick={() => {
-            onNewGroupChat();
+            onNewAgentRoom();
             onModeChange("group");
           }}
           className={`sidebar-button ${currentMode === "group" ? "active" : ""}`}
         >
           <Users className="sidebar-button-icon" />
-          Chat with Agents
+          Agent Room
           {currentMode === "group" && <span className="sidebar-button-badge">•</span>}
         </button>
       </div>

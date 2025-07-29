@@ -5,7 +5,7 @@ const path = require('path');
 let mainWindow;
 
 // Set a consistent user data path for localStorage persistence
-app.setPath('userData', path.join(app.getPath('appData'), 'CodeByAgents'));
+app.setPath('userData', path.join(app.getPath('appData'), 'Agentrooms'));
 
 const isDev = process.env.NODE_ENV === 'development';
 

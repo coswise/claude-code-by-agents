@@ -24,15 +24,6 @@ const DEFAULT_AGENTS: Agent[] = [
     description: "Intelligent orchestrator that coordinates multi-agent workflows",
     apiEndpoint: "https://api.claudecode.run",
     isOrchestrator: true
-  },
-  {
-    id: "tians-twitter",
-    name: "Tian's Twitter",
-    workingDirectory: "/Users/administrator/awesome-claude-code-agents/twitter_agents/twitter_tian",
-    color: "bg-gradient-to-r from-blue-400 to-blue-600",
-    description: "An twitter agent that use browser to engage twitter as Tian Lan persona",
-    apiEndpoint: "http://207.254.39.121:8080",
-    isOrchestrator: false
   }
 ];
 

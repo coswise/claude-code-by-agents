@@ -149,7 +149,7 @@ export function AgentDetailView({ agentId, messages, sessionId }: AgentDetailVie
                   <FileText size={20} />
                 </div>
                 <h3>No conversation history yet</h3>
-                <p>Switch to Chat with Agents to start talking with this agent</p>
+                <p>Switch to Agent Room to start talking with this agent</p>
               </div>
             ) : (
               <div>
