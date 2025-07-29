@@ -30,6 +30,12 @@ https://github.com/user-attachments/assets/0b4e6709-d9b9-4676-85e0-aec8e15fd097
 ## Quick Start
 
 ```bash
+chmod +x setup_claude_code.sh
+./setup_claude_code.sh
+```
+or 
+
+```bash
 # Prerequisites: Claude CLI installed + authenticated
 
 # Option 1: Desktop App
