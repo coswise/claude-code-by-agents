@@ -1,4 +1,4 @@
-# Agentrooms
+# Claude Code Agentrooms
 
 Multi-agent workspace for collaborative development with Claude CLI. Route tasks to specialized agents (local or remote), coordinate complex workflows.
 
