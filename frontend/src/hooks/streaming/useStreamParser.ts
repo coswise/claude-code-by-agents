@@ -280,6 +280,8 @@ export function useStreamParser() {
             timestamp: Date.now(),
           };
           context.addMessage(errorMessage);
+          context.setCurrentAssistantMessage(null);
+          context.onRequestComplete?.();
         } else if (data.type === "aborted") {
           const abortedMessage: AbortMessage = {
             type: "system",
@@ -289,6 +291,7 @@ export function useStreamParser() {
           };
           context.addMessage(abortedMessage);
           context.setCurrentAssistantMessage(null);
+          context.onRequestComplete?.();
         } else if (data.type === "done") {
           // Request completed successfully - clean up current assistant message and signal completion
           context.setCurrentAssistantMessage(null);
