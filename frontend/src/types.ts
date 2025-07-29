@@ -30,12 +30,21 @@ export type AbortMessage = {
   timestamp: number;
 };
 
+// Warning message for system warnings
+export type WarningMessage = {
+  type: "system";
+  subtype: "warning";
+  message: string;
+  timestamp: number;
+};
+
 // System message extending SDK types with timestamp
 export type SystemMessage = (
   | SDKSystemMessage
   | SDKResultMessage
   | ErrorMessage
   | AbortMessage
+  | WarningMessage
 ) & {
   timestamp: number;
 };

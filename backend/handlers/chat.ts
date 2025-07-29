@@ -503,7 +503,11 @@ export async function handleChatRequest(
             timestamp: Date.now(),
           }
         };
-        controller.enqueue(new TextEncoder().encode(JSON.stringify(ackResponse) + "\n"));
+        const ackData = JSON.stringify(ackResponse) + "\n";
+        controller.enqueue(new TextEncoder().encode(ackData));
+        
+        // Send a small flush marker to ensure the connection is established
+        controller.enqueue(new TextEncoder().encode(" \n"));
 
         // Check if this is a single-agent mention that should use HTTP request
         let executionMethod;
@@ -569,6 +573,11 @@ export async function handleChatRequest(
         for await (const chunk of executionMethod) {
           const data = JSON.stringify(chunk) + "\n";
           controller.enqueue(new TextEncoder().encode(data));
+          
+          // Add periodic flush markers to prevent buffering
+          if (Math.random() < 0.3) { // 30% chance to add flush
+            controller.enqueue(new TextEncoder().encode(" \n"));
+          }
         }
         controller.close();
       } catch (error) {
@@ -587,10 +596,17 @@ export async function handleChatRequest(
   return new Response(stream, {
     headers: {
       "Content-Type": "application/x-ndjson",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
       "Connection": "keep-alive",
       "Transfer-Encoding": "chunked",
-      "X-Accel-Buffering": "no", // Disable proxy buffering
+      "X-Accel-Buffering": "no", // Disable Nginx proxy buffering
+      "X-Proxy-Buffering": "no", // Disable other proxy buffering
+      "Pragma": "no-cache", // HTTP/1.0 compatibility
+      "Expires": "0", // Prevent caching
+      "Access-Control-Allow-Origin": "*", // CORS for streaming
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Expose-Headers": "Content-Type, Cache-Control",
     },
   });
 }

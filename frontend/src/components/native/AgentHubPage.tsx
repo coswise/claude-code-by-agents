@@ -15,6 +15,7 @@ import { getChatUrl } from "../../config/api";
 import { KEYBOARD_SHORTCUTS } from "../../utils/constants";
 import { useAgentConfig } from "../../hooks/useAgentConfig";
 import type { StreamingContext } from "../../hooks/streaming/useMessageProcessor";
+import { debugStreamingConnection, debugStreamingChunk, debugStreamingPerformance, warnProxyBuffering } from "../../utils/streamingDebug";
 
 export function AgentHubPage() {
   const [currentMode, setCurrentMode] = useState<"group" | "agent">("group");
@@ -31,6 +32,7 @@ export function AgentHubPage() {
     currentSessionId,
     currentRequestId,
     hasReceivedInit,
+    hasShownInitMessage,
     currentAssistantMessage,
     activeAgentId,
     agentSessions,
@@ -38,6 +40,7 @@ export function AgentHubPage() {
     setInput,
     setCurrentSessionId,
     setHasReceivedInit,
+    setHasShownInitMessage,
     setCurrentAssistantMessage,
     addMessage,
     updateLastMessage,
@@ -97,37 +100,79 @@ export function AgentHubPage() {
     let messageContent = input.trim();
     let sessionToUse = currentSessionId;
 
-    // In group mode, always route to Orchestrator Agent for orchestration
+    console.log("🚦 ROUTING DECISION START");
+    console.log("📝 Input message:", input.trim());
+    console.log("🎯 Current mode:", currentMode);
+    console.log("👤 Active agent ID:", activeAgentId);
+
+    // In group mode, check for direct @mentions first, then route to orchestrator
     if (isGroupMode) {
-      const orchestratorAgent = getOrchestratorAgent();
-      if (orchestratorAgent) {
-        targetAgentId = orchestratorAgent.id;
-        // Keep the full message with @mentions for the orchestrator to analyze
-        messageContent = input.trim();
-        // Use orchestrator session instead of switching agent
-        const groupContext = getAgentRoomContext();
-        sessionToUse = groupContext.sessionId;
-      } else {
-        // Fallback to old behavior if no orchestrator found
-        const mentionMatch = input.match(/^@(\w+(?:-\w+)*)\s+(.*)$/);
-        if (mentionMatch) {
-          const [, agentId, cleanMessage] = mentionMatch;
-          const agent = getAgentById(agentId);
-          if (agent) {
-            targetAgentId = agent.id;
-            messageContent = cleanMessage;
-            switchToAgent(agent.id);
-          }
+      console.log("🏢 Group mode detected - checking for direct mentions first");
+      
+      // First check if there's a direct @mention - if so, route directly to that agent
+      const mentionMatch = input.match(/^@(\w+(?:-\w+)*)\s+(.*)$/);
+      if (mentionMatch) {
+        const [, agentId, cleanMessage] = mentionMatch;
+        console.log("🎯 Direct mention detected:", { agentId, cleanMessage });
+        const agent = getAgentById(agentId);
+        if (agent) {
+          console.log("✅ Mentioned agent found - routing directly:", {
+            id: agent.id,
+            name: agent.name,
+            endpoint: agent.apiEndpoint
+          });
+          targetAgentId = agent.id;
+          messageContent = cleanMessage;
+          // Use the specific agent's session, not the group session
+          const agentSession = agentSessions[agent.id];
+          sessionToUse = agentSession?.sessionId || undefined;
+          console.log("🔄 Using agent-specific session:", sessionToUse);
+          switchToAgent(agent.id);
         } else {
+          console.log("❌ Mentioned agent not found:", agentId);
+          return; // Exit early if mentioned agent doesn't exist
+        }
+      } else {
+        // No direct mention - route to orchestrator for general orchestration
+        console.log("🏢 No direct mention - looking for orchestrator");
+        const orchestratorAgent = getOrchestratorAgent();
+        if (orchestratorAgent) {
+          console.log("✅ Orchestrator found:", {
+            id: orchestratorAgent.id,
+            name: orchestratorAgent.name,
+            endpoint: orchestratorAgent.apiEndpoint
+          });
+          targetAgentId = orchestratorAgent.id;
+          // Keep the full message for the orchestrator to analyze
+          messageContent = input.trim();
+          // Use orchestrator session for group coordination
+          const groupContext = getAgentRoomContext();
+          sessionToUse = groupContext.sessionId;
+          console.log("🔄 Using orchestrator session:", sessionToUse);
+        } else {
+          console.log("❌ No orchestrator found and no direct mention");
           targetAgentId = getTargetAgentId();
           if (targetAgentId) {
+            console.log("✅ Fallback to target agent ID:", targetAgentId);
             switchToAgent(targetAgentId);
+          } else {
+            console.log("❌ No target agent ID found");
           }
         }
       }
+    } else {
+      console.log("👤 Agent mode - using active agent");
     }
 
-    if (!targetAgentId) return;
+    if (!targetAgentId) {
+      console.log("❌ ROUTING FAILED - No target agent ID");
+      return;
+    }
+
+    console.log("🎯 FINAL ROUTING DECISION:");
+    console.log("  Target Agent ID:", targetAgentId);
+    console.log("  Message Content:", messageContent);
+    console.log("  Session ID:", sessionToUse);
 
     const requestId = generateRequestId();
     
@@ -154,11 +199,24 @@ export function AgentHubPage() {
       addMessage: (msg) => addMessage(msg, isGroupMode),
       updateLastMessage: (content) => updateLastMessage(content, isGroupMode),
       onRequestComplete: () => resetRequestState(),
+      shouldShowInitMessage: () => !hasShownInitMessage,
+      onInitMessageShown: () => setHasShownInitMessage(true),
     };
 
     try {
       const currentAgent = getAgentById(targetAgentId);
-      if (!currentAgent) return;
+      if (!currentAgent) {
+        console.log("❌ CRITICAL ERROR - Agent not found for ID:", targetAgentId);
+        return;
+      }
+
+      console.log("✅ Final agent selected:", {
+        id: currentAgent.id,
+        name: currentAgent.name,
+        workingDirectory: currentAgent.workingDirectory,
+        apiEndpoint: currentAgent.apiEndpoint,
+        isOrchestrator: currentAgent.isOrchestrator
+      });
 
       const chatRequest: ChatRequest = {
         message: messageContent,
@@ -175,15 +233,33 @@ export function AgentHubPage() {
         })),
       };
 
-      const response = await fetch(getChatUrl(), {
+      const requestStartTime = Date.now();
+      const targetApiEndpoint = currentAgent.apiEndpoint;
+      const finalUrl = getChatUrl(targetApiEndpoint);
+      
+      console.log("🌐 FINAL API CALL:");
+      console.log("  API Endpoint:", targetApiEndpoint);
+      console.log("  Final URL:", finalUrl);
+      console.log("  Request ID:", requestId);
+      console.log("  Working Directory:", currentAgent.workingDirectory);
+      
+      debugStreamingConnection(finalUrl, { "Content-Type": "application/json" });
+
+      const response = await fetch(finalUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chatRequest),
       });
 
       if (!response.ok) {
+        console.log("❌ HTTP ERROR:");
+        console.log("  Status:", response.status);
+        console.log("  Status Text:", response.statusText);
+        console.log("  URL:", finalUrl);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      console.log("✅ HTTP Response OK:", response.status);
 
       if (!response.body) {
         throw new Error("No response body");
@@ -194,19 +270,46 @@ export function AgentHubPage() {
 
       createAbortHandler(requestId);
 
+      let streamingDetected = false;
+      let lastResponseTime = Date.now();
+      const streamingTimeout = 30000; // 30 seconds
+
+      // Set up streaming detection timeout
+      const streamingCheck = setTimeout(() => {
+        if (!streamingDetected) {
+          warnProxyBuffering(streamingTimeout);
+          // Add a system message to inform user
+          addMessage({
+            type: "system",
+            subtype: "warning",
+            message: "Streaming may be affected by network configuration. Responses may appear delayed.",
+            timestamp: Date.now(),
+          }, isGroupMode);
+        }
+      }, streamingTimeout);
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n");
+        debugStreamingChunk(chunk, lines.length);
 
         for (const line of lines) {
           if (line.trim()) {
+            if (!streamingDetected && Date.now() - lastResponseTime < 5000) {
+              streamingDetected = true;
+              clearTimeout(streamingCheck);
+              debugStreamingPerformance(requestStartTime, Date.now());
+            }
             processStreamLine(line, streamingContext);
+            lastResponseTime = Date.now();
           }
         }
       }
+
+      clearTimeout(streamingCheck);
     } catch (error: any) {
       console.error("Chat error:", error);
       if (error.name !== "AbortError") {
@@ -226,12 +329,14 @@ export function AgentHubPage() {
     currentMode,
     currentSessionId,
     hasReceivedInit,
+    hasShownInitMessage,
     currentAssistantMessage,
     generateRequestId,
     addMessage,
     clearInput,
     startRequest,
     setHasReceivedInit,
+    setHasShownInitMessage,
     setCurrentAssistantMessage,
     setCurrentSessionId,
     updateLastMessage,
@@ -279,6 +384,8 @@ export function AgentHubPage() {
       addMessage: (msg) => addMessage(msg, isGroupMode),
       updateLastMessage: (content) => updateLastMessage(content, isGroupMode),
       onRequestComplete: () => resetRequestState(),
+      shouldShowInitMessage: () => !hasShownInitMessage,
+      onInitMessageShown: () => setHasShownInitMessage(true),
     };
 
     try {
@@ -301,7 +408,11 @@ export function AgentHubPage() {
         })),
       };
 
-      const response = await fetch(getChatUrl(), {
+      const requestStartTime = Date.now();
+      const stepTargetApiEndpoint = targetAgent.apiEndpoint;
+      debugStreamingConnection(getChatUrl(stepTargetApiEndpoint), { "Content-Type": "application/json" });
+
+      const response = await fetch(getChatUrl(stepTargetApiEndpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chatRequest),
@@ -320,19 +431,46 @@ export function AgentHubPage() {
 
       createAbortHandler(requestId);
 
+      let streamingDetected = false;
+      let lastResponseTime = Date.now();
+      const streamingTimeout = 30000; // 30 seconds
+
+      // Set up streaming detection timeout
+      const streamingCheck = setTimeout(() => {
+        if (!streamingDetected) {
+          warnProxyBuffering(streamingTimeout);
+          // Add a system message to inform user
+          addMessage({
+            type: "system",
+            subtype: "warning",
+            message: "Streaming may be affected by network configuration. Responses may appear delayed.",
+            timestamp: Date.now(),
+          }, isGroupMode);
+        }
+      }, streamingTimeout);
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n");
+        debugStreamingChunk(chunk, lines.length);
 
         for (const line of lines) {
           if (line.trim()) {
+            if (!streamingDetected && Date.now() - lastResponseTime < 5000) {
+              streamingDetected = true;
+              clearTimeout(streamingCheck);
+              debugStreamingPerformance(requestStartTime, Date.now());
+            }
             processStreamLine(line, streamingContext);
+            lastResponseTime = Date.now();
           }
         }
       }
+
+      clearTimeout(streamingCheck);
     } catch (error: any) {
       console.error("Step execution error:", error);
       if (error.name !== "AbortError") {
@@ -350,8 +488,10 @@ export function AgentHubPage() {
     addMessage,
     startRequest,
     hasReceivedInit,
+    hasShownInitMessage,
     currentAssistantMessage,
     setHasReceivedInit,
+    setHasShownInitMessage,
     setCurrentAssistantMessage,
     setCurrentSessionId,
     updateLastMessage,

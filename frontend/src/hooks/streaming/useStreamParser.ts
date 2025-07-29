@@ -266,6 +266,12 @@ export function useStreamParser() {
   const processStreamLine = useCallback(
     (line: string, context: StreamingContext) => {
       try {
+        // Skip empty lines and flush markers (just whitespace)
+        const trimmedLine = line.trim();
+        if (!trimmedLine) {
+          return;
+        }
+
         const data: StreamResponse = JSON.parse(line);
 
         if (data.type === "claude_json" && data.data) {
@@ -298,7 +304,10 @@ export function useStreamParser() {
           context.onRequestComplete?.();
         }
       } catch (parseError) {
-        console.error("Failed to parse stream line:", parseError);
+        // Don't log errors for flush markers (empty lines)
+        if (line.trim()) {
+          console.error("Failed to parse stream line:", parseError);
+        }
       }
     },
     [processClaudeData],
